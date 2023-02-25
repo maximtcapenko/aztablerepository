@@ -13,8 +13,8 @@
         IPropertyBuilder<AnonymousProxyTypeBuilder>
         where TEntity : class
     {
-        private Expression<Func<TEntity, TProperty>> _property;
-        private string _fieldName = "Content";
+        private readonly Expression<Func<TEntity, TProperty>> _property;
+        private readonly string _fieldName = "Content";
         private static ConcurrentDictionary<string, IMapperDelegate> _mappersCache
                 = new ConcurrentDictionary<string, IMapperDelegate>();
         private static string GetKeyName<TFrom, TTo>(string property)
@@ -32,6 +32,9 @@
 
         public void Map<T>(TEntity from, T to) where T : class, ITableEntity
         {
+            ArgumentNullException.ThrowIfNull(from, nameof(from));
+            ArgumentNullException.ThrowIfNull(to, nameof(to));
+            
             var mapper = _mappersCache.GetOrAdd(GetKeyName<TEntity, T>(_fieldName), (s) =>
               {
                   //build delegate for mapping
@@ -68,7 +71,7 @@
                 var getter = Expression.PropertyOrField(fromparam, _fieldName);
                 var toParam = Expression.Parameter(typeof(TProperty));
                 var getContentFunc = Expression.Lambda<Func<T, string>>(getter, fromparam).Compile();
-                
+
                 var expression = Expression.Assign(_property.Body, toParam);
 
                 //cache for type

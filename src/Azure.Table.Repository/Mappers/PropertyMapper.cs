@@ -5,11 +5,11 @@
     using System.Collections.Concurrent;
     using System.Linq.Expressions;
 
-    internal class PropertyMapper<TEntity, TProperty> : BaseKeyPropertyMapper<TEntity, TProperty>
-    where TEntity : class
+    internal class PropertyMapper<TEntity, TProperty> : BaseKeyPropertyMapper<TEntity, TProperty> 
+        where TEntity : class
     {
-        private MemberExpression _memberExpression;
-        private string _fieldName;
+        private readonly MemberExpression _memberExpression;
+        private readonly string _fieldName;
         private static ConcurrentDictionary<string, IMapperDelegate> _mappersCache
            = new ConcurrentDictionary<string, IMapperDelegate>();
 

@@ -8,9 +8,9 @@
     internal class TranslateVisitor : ExpressionVisitor
     {
         private Expression _transaltedExpression;
-        private List<MemberVisitorFactory> _visitors = new List<MemberVisitorFactory>();
-        private Dictionary<Expression, Expression> _visitedEqNeqGtLtNodes = new Dictionary<Expression, Expression>();
-        private HashSet<Expression> _visitedOrAndNodes = new HashSet<Expression>();
+        private readonly List<MemberVisitorFactory> _visitors = new List<MemberVisitorFactory>();
+        private readonly Dictionary<Expression, Expression> _visitedEqNeqGtLtNodes = new Dictionary<Expression, Expression>();
+        private readonly HashSet<Expression> _visitedOrAndNodes = new HashSet<Expression>();
 
         public TranslateVisitor(IEnumerable<MemberVisitorFactory> visitors)
         {

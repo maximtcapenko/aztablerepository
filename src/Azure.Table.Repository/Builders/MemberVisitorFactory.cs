@@ -4,7 +4,7 @@
 
     internal class MemberVisitorFactory
     {
-        private Func<MemberVisitor> _internalfactory;
+        private readonly Func<MemberVisitor> _internalfactory;
 
         public MemberVisitorFactory(Func<MemberVisitor> func)
         {

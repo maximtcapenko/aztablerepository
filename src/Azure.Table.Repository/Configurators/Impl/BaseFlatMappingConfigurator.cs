@@ -13,8 +13,8 @@
     public class BaseFlatMappingConfigurator<TEntity> : IMappingConfigurator<TEntity>
         where TEntity : class
     {
-        List<IPropertyBuilder<AnonymousProxyTypeBuilder>> memberMappers = new List<IPropertyBuilder<AnonymousProxyTypeBuilder>>();
-        AnonymousProxyTypeBuilder _typeBuilder;
+        private readonly List<IPropertyBuilder<AnonymousProxyTypeBuilder>> memberMappers = new List<IPropertyBuilder<AnonymousProxyTypeBuilder>>();
+        private readonly AnonymousProxyTypeBuilder _typeBuilder;
 
         public BaseFlatMappingConfigurator()
         {

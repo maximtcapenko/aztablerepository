@@ -15,8 +15,8 @@
     internal class DefaultCommandRunnerFactory<TEntity> : ICommandRunnerFactory<TEntity>
         where TEntity : class
     {
-        private BaseFlatMappingConfigurator<TEntity> _configurator;
-        private TableServiceClient _tableServiceClient;
+        private readonly BaseFlatMappingConfigurator<TEntity> _configurator;
+        private readonly TableServiceClient _tableServiceClient;
 
         public DefaultCommandRunnerFactory(BaseFlatMappingConfigurator<TEntity> configurator,
             TableServiceClient tableServiceClient)
@@ -49,7 +49,7 @@
 
         internal class InternalMapRegistrator : IMapRegistrator
         {
-            private IServiceCollection _services;
+            private readonly IServiceCollection _services;
 
             public InternalMapRegistrator(IServiceCollection services) 
             {

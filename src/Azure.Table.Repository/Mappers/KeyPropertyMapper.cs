@@ -13,8 +13,8 @@
         IPropertyBuilder<AnonymousProxyTypeBuilder>, ITranslateVisitorBuilderVisitor
         where TEntity : class
     {
-        private MemberExpression _memberExpression;
-        private Expression<Func<TEntity, TProperty>> _property;
+        private readonly MemberExpression _memberExpression;
+        private readonly Expression<Func<TEntity, TProperty>> _property;
 
         private static ConcurrentDictionary<string, IMapperDelegate> _mappersCache
             = new ConcurrentDictionary<string, IMapperDelegate>();
@@ -54,6 +54,9 @@
 
         public void Map<T>(T from, TEntity to) where T : class
         {
+            ArgumentNullException.ThrowIfNull(from, nameof(from));
+            ArgumentNullException.ThrowIfNull(to, nameof(to));
+            
             var mapper = _mappersCache.GetOrAdd(GetKeyName<T, TEntity>(GetKeyPropertyName()), (s) =>
            {
                     //build delegate for mapping

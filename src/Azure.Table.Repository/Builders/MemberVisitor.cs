@@ -8,9 +8,9 @@
         public Expression Value { get; private set; }
         public bool HasValue => Value != null;
 
-        private ParameterExpression _parameter;
-        private MemberExpression _fromProperty;
-        private MemberExpression _toProperty;
+        private readonly ParameterExpression _parameter;
+        private readonly MemberExpression _fromProperty;
+        private readonly MemberExpression _toProperty;
 
         public MemberVisitor(MemberExpression fromProperty, MemberExpression toProperty, ParameterExpression parameter)
         {
@@ -18,7 +18,6 @@
             _toProperty = toProperty;
             _parameter = parameter;
         }
-
 
         public static MemberVisitor Create<TFrom, TTo, TProperty>(Expression<Func<TFrom, TProperty>> from, Expression<Func<TTo, TProperty>> to, ParameterExpression parameter) =>
             new MemberVisitor(from.Body as MemberExpression, to.Body as MemberExpression, parameter);
@@ -39,5 +38,4 @@
 
         }
     }
-
 }

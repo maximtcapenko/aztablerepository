@@ -7,7 +7,7 @@
     internal class TranslateVisitorBuilder<TTo>
        where TTo : class, ITableEntity
     {
-        private List<MemberVisitorFactory> _factories = new List<MemberVisitorFactory>();
+        private readonly List<MemberVisitorFactory> _factories = new List<MemberVisitorFactory>();
 
         public ParameterExpression ParameterExpression { get; } = Expression.Parameter(typeof(TTo));
 
@@ -15,6 +15,7 @@
         {
             _factories.Add(new MemberVisitorFactory(() => MemberVisitor.Create(from, to, ParameterExpression)));
         }
+        
         public TranslateVisitor Build() => new TranslateVisitor(_factories);
     }
 }

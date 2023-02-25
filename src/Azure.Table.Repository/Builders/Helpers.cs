@@ -256,7 +256,6 @@
 
     internal class MapperDelegate<TFrom, TTo> : IMapperDelegate where TFrom : class
         where TTo : class
-
     {
         public MapperDelegate(Action<TFrom, TTo> mapper)
         {
@@ -267,7 +266,6 @@
     }
 
     internal class MapperDelegate<TFrom0, TTo0, TFrom1, TTo1> : IMapperDelegate 
-
     {
         public MapperDelegate(Action<TFrom0, TTo0> mapper, Func<TFrom1, TTo1> contentGetter)
         {
