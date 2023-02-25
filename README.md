@@ -1,0 +1,1 @@
+The Azure Tables Repository is a project that provides an abstraction layer for working with Azure DataTables. This repository contains methods for creating and retrieving entities from the Azure Table Storage.
