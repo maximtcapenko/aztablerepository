@@ -10,6 +10,7 @@
     using System.Reflection;
     using System.Threading.Tasks;
     using Mappers;
+    using System.Collections.Concurrent;
 
     internal class TableClientRuntimeProxyRepository<TEntity> : IRepository<TEntity>
         where TEntity : class
@@ -21,6 +22,8 @@
         private readonly MethodInfo _queryMethod;
         private readonly IEnumerable<IPropertyRuntimeMapper<TEntity>> _mappers;
         private readonly TableClient _client;
+        private readonly static ConcurrentDictionary<Type, Func<object>> _instanceFactoryCache
+         = new ConcurrentDictionary<Type, Func<object>>();
 
         public TableClientRuntimeProxyRepository(TableServiceClient tableService, Type type, IEnumerable<IPropertyRuntimeMapper<TEntity>> mappers)
         {
@@ -44,9 +47,12 @@
             var mapper = new ToRuntimeTypeMapper(entity, _mappers);
             var genericMethod = _createMethod.MakeGenericMethod(_runtimeType);
 
-            var obj = Activator.CreateInstance(_runtimeType);
+            var factory = _instanceFactoryCache.GetOrAdd(_runtimeType,
+                (t) => Expression.Lambda<Func<object>>(Expression.New(t)).Compile());
 
-            return (Task)genericMethod.Invoke(this, new object[] { mapper, obj, _client });
+            var instance = factory();
+
+            return (Task)genericMethod.Invoke(this, new object[] { mapper, instance, _client });
         }
 
         public async Task<IEnumerable<TEntity>> GetCollectionAsync(Expression<Func<TEntity, bool>> predicate)
@@ -167,7 +173,11 @@
 
             public void Map<T>(T obj) where T : class, ITableEntity, new()
             {
-                var entity = Activator.CreateInstance<TEntity>();
+                var factory = _instanceFactoryCache.GetOrAdd(typeof(TEntity),
+                (t) => Expression.Lambda<Func<object>>(Expression.New(t)).Compile());
+
+                var entity = factory() as TEntity;
+
                 _entities.Add(entity);
 
                 foreach (var mapper in _mappers)
