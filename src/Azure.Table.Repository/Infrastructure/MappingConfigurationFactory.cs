@@ -7,18 +7,18 @@
     using Microsoft.Extensions.DependencyInjection;
     using System;
 
-    public interface ICommandRunnerFactory<TEntity> where TEntity : class
+    public interface IRepositoryFactory<TEntity> where TEntity : class
     {
         IRepository<TEntity> Create();
     }
 
-    internal class DefaultCommandRunnerFactory<TEntity> : ICommandRunnerFactory<TEntity>
+    internal class DefaultRepositoryFactory<TEntity> : IRepositoryFactory<TEntity>
         where TEntity : class
     {
         private readonly BaseFlatMappingConfigurator<TEntity> _configurator;
         private readonly TableServiceClient _tableServiceClient;
 
-        public DefaultCommandRunnerFactory(BaseFlatMappingConfigurator<TEntity> configurator,
+        public DefaultRepositoryFactory(BaseFlatMappingConfigurator<TEntity> configurator,
             TableServiceClient tableServiceClient)
         {
             _configurator = configurator;
@@ -58,15 +58,15 @@
 
             public IMapRegistrator Register<T>(IMappingConfiguration<T> configuration) where T : class
             {
-                _services.AddSingleton<ICommandRunnerFactory<T>>(provider =>
+                _services.AddSingleton<IRepositoryFactory<T>>(provider =>
                 {
                     var configurator = new BaseFlatMappingConfigurator<T>();
                     configuration.Configure(configurator);
 
-                    return new DefaultCommandRunnerFactory<T>(configurator, provider.GetRequiredService<TableServiceClient>());
+                    return new DefaultRepositoryFactory<T>(configurator, provider.GetRequiredService<TableServiceClient>());
                 });
 
-                _services.AddTransient(provider => provider.GetRequiredService<ICommandRunnerFactory<T>>().Create());
+                _services.AddTransient(provider => provider.GetRequiredService<IRepositoryFactory<T>>().Create());
 
                 return this;
             }

@@ -132,8 +132,8 @@
 
         internal class RuntimeQueryMapper : IQueryProvider
         {
-            private Expression<Func<TEntity, bool>> _predicate;
-            private IEnumerable<ITranslateVisitorBuilderVisitor> _builderVisitors;
+            private readonly Expression<Func<TEntity, bool>> _predicate;
+            private readonly IEnumerable<ITranslateVisitorBuilderVisitor> _builderVisitors;
 
             public RuntimeQueryMapper(Expression<Func<TEntity, bool>> predicate,
                 IEnumerable<ITranslateVisitorBuilderVisitor> builderVisitors)
@@ -160,9 +160,9 @@
 
         internal class FromRuntimeTypeMapper : IMapper
         {
-            private IEnumerable<IPropertyRuntimeMapper<TEntity>> _mappers;
+            private readonly IEnumerable<IPropertyRuntimeMapper<TEntity>> _mappers;
 
-            private List<TEntity> _entities;
+            private readonly List<TEntity> _entities;
 
             public FromRuntimeTypeMapper(List<TEntity> entities,
                 IEnumerable<IPropertyRuntimeMapper<TEntity>> mappers)
@@ -189,8 +189,8 @@
 
         internal class ToRuntimeTypeMapper : IMapper
         {
-            private IEnumerable<IPropertyRuntimeMapper<TEntity>> _mappers;
-            private TEntity _entity;
+            private readonly IEnumerable<IPropertyRuntimeMapper<TEntity>> _mappers;
+            private readonly TEntity _entity;
 
             public ToRuntimeTypeMapper(TEntity entity, IEnumerable<IPropertyRuntimeMapper<TEntity>> mappers)
             {
