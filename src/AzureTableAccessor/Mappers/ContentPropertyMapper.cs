@@ -1,4 +1,4 @@
-﻿namespace Azure.Table.Repository.Mappers
+﻿namespace AzureTableAccessor.Mappers
 {
     using Azure.Data.Tables;
     using Builders;
@@ -14,7 +14,7 @@
         where TEntity : class
     {
         private readonly Expression<Func<TEntity, TProperty>> _property;
-        private readonly string _fieldName = "Content";
+        private readonly string _fieldName;
         private static ConcurrentDictionary<string, IMapperDelegate> _mappersCache
                 = new ConcurrentDictionary<string, IMapperDelegate>();
         private static string GetKeyName<TFrom, TTo>(string property)
@@ -23,6 +23,7 @@
         public ContentPropertyMapper(Expression<Func<TEntity, TProperty>> property)
         {
             _property = property;
+            _fieldName = $"Content_{property.GetMemberPath()}";
         }
 
         public void Build(AnonymousProxyTypeBuilder builder)

@@ -3,11 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.31129.286
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Azure.Table.Repository", "src\Azure.Table.Repository\Azure.Table.Repository.csproj", "{9E4D7647-71DE-4ADF-A04D-552AED3D80A9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AzureTableAccessor", "src\AzureTableAccessor\AzureTableAccessor.csproj", "{9E4D7647-71DE-4ADF-A04D-552AED3D80A9}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{A295BA31-F1F9-489A-9DAE-3AFC6689F5B5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Azure.Table.Repository.Examples", "src\Azure.Table.Repository.Examples\Azure.Table.Repository.Examples.csproj", "{5419A7F6-1913-4979-BED1-67D070BF3AB3}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzureTableAccessor.Examples", "src\AzureTableAccessor.Examples\AzureTableAccessor.Examples.csproj", "{5419A7F6-1913-4979-BED1-67D070BF3AB3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

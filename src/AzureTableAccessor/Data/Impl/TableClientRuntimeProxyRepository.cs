@@ -1,4 +1,4 @@
-﻿namespace Azure.Table.Repository.Data.Impl
+﻿namespace AzureTableAccessor.Data.Impl
 {
     using Azure.Data.Tables;
     using Builders;

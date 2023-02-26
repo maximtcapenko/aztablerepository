@@ -1,4 +1,4 @@
-﻿namespace Azure.Table.Repository.Configurators
+﻿namespace AzureTableAccessor.Configurators
 {
     using System;
     using System.Linq.Expressions;
@@ -13,5 +13,4 @@
 
         IMappingConfigurator<TEntity> Content<TProperty>(Expression<Func<TEntity, TProperty>> property) where TProperty : class;
     }
-
 }

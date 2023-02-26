@@ -1,4 +1,4 @@
-﻿namespace Azure.Table.Repository.Examples
+﻿namespace AzureTableAccessor.Examples
 {
 
     using Configurators;

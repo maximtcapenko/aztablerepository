@@ -7,6 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Azure.Table.Repository\Azure.Table.Repository.csproj" />
+    <ProjectReference Include="..\AzureTableAccessor\AzureTableAccessor.csproj" />
   </ItemGroup>
 </Project>

@@ -43,15 +43,15 @@ jobs:
 
       - name: Pack
         shell: bash
-        working-directory: src/Azure.Table.Repository
+        working-directory: src/AzureTableAccessor
         run: dotnet pack --configuration Release -p:PackageVersion=${{ steps.gitversion.outputs.nuGetVersionV2 }} --output build/
 
       - name: Publish nupkg
         shell: bash
-        working-directory: src/Azure.Table.Repository
+        working-directory: src/AzureTableAccessor
         run: dotnet nuget push build/*.nupkg --source $NUGET_SOURCE --api-key $NUGET_API_KEY
 
       - name: Publish snupkg
         shell: bash
-        working-directory: src/Azure.Table.Repository
+        working-directory: src/AzureTableAccessor
         run: dotnet nuget push build/*.snupkg --source $NUGET_SOURCE --api-key $NUGET_API_KEY

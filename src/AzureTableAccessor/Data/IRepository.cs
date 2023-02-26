@@ -1,4 +1,4 @@
-﻿namespace Azure.Table.Repository.Data
+﻿namespace AzureTableAccessor.Data
 {
     using System;
     using System.Collections.Generic;

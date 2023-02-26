@@ -1,4 +1,4 @@
-﻿namespace Azure.Table.Repository.Builders
+﻿namespace AzureTableAccessor.Builders
 {
     using System;
 

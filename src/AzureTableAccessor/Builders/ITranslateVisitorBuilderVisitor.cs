@@ -1,6 +1,6 @@
 ﻿using Azure.Data.Tables;
 
-namespace Azure.Table.Repository.Builders
+namespace AzureTableAccessor.Builders
 {
     internal interface ITranslateVisitorBuilderVisitor
     {

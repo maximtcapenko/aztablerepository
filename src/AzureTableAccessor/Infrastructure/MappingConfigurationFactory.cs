@@ -1,4 +1,4 @@
-﻿namespace Azure.Table.Repository.Infrastructure
+﻿namespace AzureTableAccessor.Infrastructure
 {
     using Azure.Data.Tables;
     using Configurators;

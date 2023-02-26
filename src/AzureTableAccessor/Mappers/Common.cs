@@ -1,4 +1,4 @@
-﻿namespace Azure.Table.Repository.Mappers
+﻿namespace AzureTableAccessor.Mappers
 {
     using Azure.Data.Tables;
 

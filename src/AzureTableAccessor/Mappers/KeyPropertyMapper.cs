@@ -1,4 +1,4 @@
-﻿namespace Azure.Table.Repository.Mappers
+﻿namespace AzureTableAccessor.Mappers
 {
     using Azure.Data.Tables;
     using Builders;
@@ -36,9 +36,9 @@
 
         public void Map<T>(TEntity from, T to) where T : class, ITableEntity
         {
-            var mapper = _mappersCache.GetOrAdd(GetKeyName<TEntity, T>(GetKeyPropertyName()), (s) =>
+            var mapper = _mappersCache.GetOrAdd(GetKeyName<TEntity, T>(GetKeyPropertyName()), (keyName) =>
              {
-                            //build delegate for mapping
+                //build delegate for mapping
                 var fromparam = _property.Parameters.First();
                 var targetparam = Expression.Parameter(typeof(T), "e");
                 var field = Expression.PropertyOrField(targetparam, GetKeyPropertyName());
@@ -57,7 +57,7 @@
             ArgumentNullException.ThrowIfNull(from, nameof(from));
             ArgumentNullException.ThrowIfNull(to, nameof(to));
             
-            var mapper = _mappersCache.GetOrAdd(GetKeyName<T, TEntity>(GetKeyPropertyName()), (s) =>
+            var mapper = _mappersCache.GetOrAdd(GetKeyName<T, TEntity>(GetKeyPropertyName()), (keyName) =>
            {
                     //build delegate for mapping
                 var targetparam = _property.Parameters.First();
