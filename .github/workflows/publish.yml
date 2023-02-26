@@ -38,7 +38,7 @@ jobs:
 
       - name: Install Dependencies
         shell: bash
-        working-directory: src/Azure.Table.Repository
+        working-directory: src/AzureTableAccessor
         run: dotnet restore --packages './packages'
 
       - name: Pack
