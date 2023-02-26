@@ -49,9 +49,9 @@ jobs:
       - name: Publish nupkg
         shell: bash
         working-directory: src/Azure.Table.Repository
-        run: dotnet nuget push build/*.nupkg --source $MYGET_SOURCE --api-key $NUGET_API_KEY
+        run: dotnet nuget push build/*.nupkg --source $NUGET_SOURCE --api-key $NUGET_API_KEY
 
       - name: Publish snupkg
         shell: bash
         working-directory: src/Azure.Table.Repository
-        run: dotnet nuget push build/*.snupkg --source $MYGET_SOURCE --api-key $NUGET_SOURCE
+        run: dotnet nuget push build/*.snupkg --source $NUGET_SOURCE --api-key $NUGET_API_KEY
