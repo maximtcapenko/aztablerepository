@@ -9,6 +9,8 @@
     {
         Task CreateAsync(TEntity entity);
 
+        Task UpdateAsync(TEntity entity);
+        
         Task<IEnumerable<TEntity>> GetCollectionAsync();
 
         Task<IEnumerable<TEntity>> GetCollectionAsync(Expression<Func<TEntity, bool>> predicate);

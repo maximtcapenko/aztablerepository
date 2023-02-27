@@ -1,6 +1,15 @@
 ﻿namespace AzureTableAccessor.Mappers
 {
+    using System;
     using Azure.Data.Tables;
+
+    internal enum PropertyConfigType
+    {
+        PartitionKey,
+        RowKey,
+        Property,
+        Content
+    }
 
     internal interface IPropertyRuntimeMapper<TEntity> where TEntity : class
     {
@@ -14,4 +23,17 @@
         void Build(TBuilder builder);
     }
 
+    internal interface IPropertyConfiguration<TEntity>
+    {
+        PropertyConfigType PropertyConfigType { get; }
+        string Name { get; }
+        Type Type { get; }
+
+        object GetValue(TEntity entity);
+    }
+
+    internal interface IPropertyConfigurationProvider<TEntity>
+    {
+        IPropertyConfiguration<TEntity> GetPropertyConfiguration();
+    }
 }

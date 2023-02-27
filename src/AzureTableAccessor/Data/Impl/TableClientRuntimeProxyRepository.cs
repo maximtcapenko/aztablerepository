@@ -18,6 +18,7 @@
         private readonly Type _runtimeType;
         private readonly TableServiceClient _tableService;
         private readonly MethodInfo _createMethod;
+        private readonly MethodInfo _updateMethod;
         private readonly MethodInfo _queryAllMethod;
         private readonly MethodInfo _queryMethod;
         private readonly IEnumerable<IPropertyRuntimeMapper<TEntity>> _mappers;
@@ -31,13 +32,19 @@
             _runtimeType = type;
             _tableService = tableService;
             _client = _tableService.GetTableClient(typeof(TEntity).Name.ToLower());
-            _createMethod = typeof(TableClientRuntimeProxyRepository<TEntity>)
+            _createMethod = GetType()
                 .GetMethods(BindingFlags.NonPublic | BindingFlags.Instance)
                 .FirstOrDefault(m => m.IsGenericMethod && m.Name == nameof(CreateAsync));
-            _queryAllMethod = typeof(TableClientRuntimeProxyRepository<TEntity>)
+
+            _updateMethod = GetType()
+                .GetMethods(BindingFlags.NonPublic | BindingFlags.Instance)
+                .FirstOrDefault(m => m.IsGenericMethod && m.Name == nameof(UpdateAsync));
+
+            _queryAllMethod = GetType()
                 .GetMethods(BindingFlags.NonPublic | BindingFlags.Instance)
                 .FirstOrDefault(m => m.GetParameters().Length == 2 && m.IsGenericMethod && m.Name == nameof(GetCollectionAsync));
-            _queryMethod = typeof(TableClientRuntimeProxyRepository<TEntity>)
+
+            _queryMethod = GetType()
                 .GetMethods(BindingFlags.NonPublic | BindingFlags.Instance)
                 .FirstOrDefault(m => m.GetParameters().Length == 3 && m.IsGenericMethod && m.Name == nameof(GetCollectionAsync));
         }
@@ -53,6 +60,15 @@
             var instance = factory();
 
             return (Task)genericMethod.Invoke(this, new object[] { mapper, instance, _client });
+        }
+
+        public Task UpdateAsync(TEntity entity)
+        {
+            var mapper = new ToRuntimeTypeMapper(entity, _mappers);
+            var genericMethod = _updateMethod.MakeGenericMethod(_runtimeType);
+            var keys = _mappers.GetKeysFromEntity(entity);
+
+            return (Task)genericMethod.Invoke(this, new object[] { mapper, keys.partitionKey, keys.rowKey, _client });
         }
 
         public async Task<IEnumerable<TEntity>> GetCollectionAsync(Expression<Func<TEntity, bool>> predicate)
@@ -91,6 +107,16 @@
             await client.AddEntityAsync(entity);
         }
 
+        private async Task UpdateAsync<T>(IMapper mapper,  string partitionKey, string rowKey, TableClient client) where T : class, ITableEntity, new()
+        {
+            var response = await client.GetEntityAsync<T>(partitionKey, rowKey);
+            var entity = response.Value;
+
+            mapper.Map(entity);
+
+            await client.UpdateEntityAsync(entity, entity.ETag);
+        }
+
         private async Task GetCollectionAsync<T>(IMapper mapper, TableClient client) where T : class, ITableEntity, new()
         {
             var pages = client.QueryAsync<T>().AsPages();
@@ -107,7 +133,6 @@
 
         private async Task GetCollectionAsync<T>(IQueryProvider query, IMapper mapper, TableClient client) where T : class, ITableEntity, new()
         {
-
             var pages = client.QueryAsync(query.Query<T>()).AsPages();
 
             await foreach (var page in pages)

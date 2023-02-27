@@ -16,7 +16,8 @@
         private static string GetKeyName<TFrom, TTo>(string property)
             => $"{typeof(TFrom).Name}-{typeof(TTo).Name}-{property}";
 
-        public PropertyMapper(Expression<Func<TEntity, TProperty>> property) : base(property)
+        public PropertyMapper(Expression<Func<TEntity, TProperty>> property)
+         : base(property, PropertyConfigType.Property)
         {
             _memberExpression = property.Body as MemberExpression;
 

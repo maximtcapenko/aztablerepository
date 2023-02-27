@@ -7,7 +7,7 @@
         where TEntity : class
     {
         public PartitionKeyPropertyMapper(Expression<Func<TEntity, TProperty>> property)
-            : base(property)
+            : base(property, PropertyConfigType.PartitionKey)
         { }
 
         protected override string GetKeyPropertyName() => "PartitionKey";
