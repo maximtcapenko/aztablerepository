@@ -2,11 +2,11 @@
 {
     using Azure.Data.Tables;
     using Builders;
-    using Newtonsoft.Json;
     using System;
     using System.Collections.Concurrent;
     using System.Linq;
     using System.Linq.Expressions;
+    using System.Text.Json;
 
     internal class ContentPropertyMapper<TEntity, TProperty> :
         IPropertyRuntimeMapper<TEntity>,
@@ -35,7 +35,7 @@
         {
             ArgumentNullException.ThrowIfNull(from, nameof(from));
             ArgumentNullException.ThrowIfNull(to, nameof(to));
-            
+
             var mapper = _mappersCache.GetOrAdd(GetKeyName<TEntity, T>(_fieldName), (s) =>
               {
                   //build delegate for mapping
@@ -50,16 +50,15 @@
                   //cache for type
                   var func = Expression.Lambda<Action<string, T>>(expression, fromparam, targetparam).Compile();
 
-                  return new MapperDelegate<string, T, TEntity, TProperty>(func, getContentFunc);
+                  return new MapperDelegate<TEntity, T>((from, to) =>
+                  {
+                      var data = getContentFunc(from);
+                      var json = JsonSerializer.Serialize(data);
+                      func(json, to);
+                  });
               });
 
-            var contentMapper = mapper as MapperDelegate<string, T, TEntity, TProperty>;
-            if (contentMapper != null)
-            {
-                var content = contentMapper.Content(from);
-                var json = JsonConvert.SerializeObject(content);
-                contentMapper.Map(json, to);
-            }
+            (mapper as MapperDelegate<TEntity, T>)?.Map(from, to);
         }
 
         public void Map<T>(T from, TEntity to) where T : class
@@ -79,19 +78,18 @@
                 var func = Expression.Lambda<Action<TProperty, TEntity>>(expression,
                     toParam, targetparam).Compile();
 
-                return new MapperDelegate<TProperty, TEntity, T, string>(func, getContentFunc);
+                return new MapperDelegate<T, TEntity>((from, to) =>
+                {
+                    var json = getContentFunc(from);
+                    if (!string.IsNullOrEmpty(json))
+                    {
+                        var conetnt = JsonSerializer.Deserialize<TProperty>(json);
+                        func(conetnt, to);
+                    }
+                });
             });
 
-            var contentMapper = mapper as MapperDelegate<TProperty, TEntity, T, string>;
-            if (contentMapper != null)
-            {
-                var json = contentMapper.Content(from);
-                if (!string.IsNullOrEmpty(json))
-                {
-                    var conetnt = JsonConvert.DeserializeObject<TProperty>(json);
-                    contentMapper.Map(conetnt, to);
-                }
-            }
+            (mapper as MapperDelegate<T, TEntity>)?.Map(from, to);
         }
     }
 }

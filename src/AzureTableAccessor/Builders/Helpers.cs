@@ -264,16 +264,4 @@
 
         public Action<TFrom, TTo> Map { get; private set; }
     }
-
-    internal class MapperDelegate<TFrom0, TTo0, TFrom1, TTo1> : IMapperDelegate 
-    {
-        public MapperDelegate(Action<TFrom0, TTo0> mapper, Func<TFrom1, TTo1> contentGetter)
-        {
-            Content = contentGetter;
-            Map = mapper;
-        }
-
-        public Action<TFrom0, TTo0> Map { get; private set; }
-        public Func<TFrom1,TTo1> Content {get; private set;}
-    }
 }
