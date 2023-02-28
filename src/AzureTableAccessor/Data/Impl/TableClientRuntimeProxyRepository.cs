@@ -177,21 +177,37 @@
 
         private async Task UpdateAsync<T>(IMapper mapper, string partitionKey, string rowKey, TableClient client) where T : class, ITableEntity, new()
         {
-            var response = await client.GetEntityAsync<T>(partitionKey, rowKey);
-            var entity = response.Value;
+            T entity = null;
+            try
+            {
+                var response = await client.GetEntityAsync<T>(partitionKey, rowKey);
+                entity = response.Value;
 
-            mapper.Map(entity);
+                mapper.Map(entity);
+            }
+            catch (Azure.RequestFailedException ex) when (ex.Status == 404)
+            {
+                throw new EntityNotFoundException(partitionKey, rowKey);
+            }
 
             await client.UpdateEntityAsync(entity, entity.ETag);
+
         }
 
         private async Task DeleteAsync<T>(string partitionKey, string rowKey, TableClient client) where T : class, ITableEntity, new()
         {
-            var response = await client.GetEntityAsync<T>(partitionKey, rowKey);
-            var entity = response.Value;
+            T entity = null;
+            try
+            {
+                var response = await client.GetEntityAsync<T>(partitionKey, rowKey);
+                entity = response.Value;
+            }
+            catch (Azure.RequestFailedException ex) when (ex.Status == 404)
+            {
+                throw new EntityNotFoundException(partitionKey, rowKey);
+            }
 
-            if (entity != null)
-                await client.DeleteEntityAsync(partitionKey, rowKey, entity.ETag);
+            await client.DeleteEntityAsync(partitionKey, rowKey, entity.ETag);
         }
 
         private async Task LoadAsync<T>(IMapper mapper, string partitionKey, string rowKey, TableClient client) where T : class, ITableEntity, new()
@@ -199,9 +215,15 @@
             ArgumentNullException.ThrowIfNull(partitionKey, nameof(partitionKey));
             ArgumentNullException.ThrowIfNull(rowKey, nameof(rowKey));
 
-            var result = await client.GetEntityAsync<T>(partitionKey, rowKey);
-            if (result.Value != null)
+            try
+            {
+                var result = await client.GetEntityAsync<T>(partitionKey, rowKey);
                 mapper.Map(result.Value);
+            }
+            catch (Azure.RequestFailedException ex) when (ex.Status == 404)
+            {
+
+            }
         }
 
         private async Task GetCollectionAsync<T>(IMapper mapper, TableClient client) where T : class, ITableEntity, new()

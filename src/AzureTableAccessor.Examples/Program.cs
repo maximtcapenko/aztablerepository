@@ -81,7 +81,7 @@
 
             var entity = new Message
             {
-                ApplicationMessageId = "dd8edfe8-3b16-4943-b5ec-5b9550d39aa8",
+                ApplicationMessageId = "dd8edfe8-3b16-4943-b5ec-00",
                 SmsMessageId = "7e0b687e-f57c-4f19-9d54-0125e30dc9e9"
             };
 
