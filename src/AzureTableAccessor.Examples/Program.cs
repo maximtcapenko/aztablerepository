@@ -66,7 +66,7 @@
             }
 
             Console.WriteLine("-----page 0-----");
-            var page = await repository.GetPageAsync(3);
+            var page = await repository.GetPageAsync(pageSize: 3);
             foreach(var msg in page.Items)
             {
                 Console.WriteLine(msg);
@@ -78,6 +78,10 @@
             {
                 Console.WriteLine(msg);
             }
+
+            message = messages.First();
+            Console.WriteLine("-----delete-----");
+            await repository.DeleteAsync(message);
         }
     }
 

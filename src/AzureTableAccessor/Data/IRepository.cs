@@ -10,6 +10,8 @@
         Task CreateAsync(TEntity entity);
 
         Task UpdateAsync(TEntity entity);
+
+        Task DeleteAsync(TEntity entity);
         
         Task<IEnumerable<TEntity>> GetCollectionAsync();
 

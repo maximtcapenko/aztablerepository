@@ -19,6 +19,7 @@
         private readonly TableServiceClient _tableService;
         private readonly MethodInfo _createMethod;
         private readonly MethodInfo _updateMethod;
+        private readonly MethodInfo _deleteMethod;
         private readonly MethodInfo _queryAllMethod;
         private readonly MethodInfo _queryMethod;
         private readonly MethodInfo _queryPageMethod;
@@ -33,6 +34,7 @@
             _runtimeType = type;
             _tableService = tableService;
             _client = _tableService.GetTableClient(typeof(TEntity).Name.ToLower());
+
             _createMethod = GetType()
                 .GetMethods(BindingFlags.NonPublic | BindingFlags.Instance)
                 .FirstOrDefault(m => m.IsGenericMethod && m.Name == nameof(CreateAsync));
@@ -40,6 +42,10 @@
             _updateMethod = GetType()
                 .GetMethods(BindingFlags.NonPublic | BindingFlags.Instance)
                 .FirstOrDefault(m => m.IsGenericMethod && m.Name == nameof(UpdateAsync));
+            
+            _deleteMethod = GetType()
+                .GetMethods(BindingFlags.NonPublic | BindingFlags.Instance)
+                .FirstOrDefault(m => m.IsGenericMethod && m.Name == nameof(DeleteAsync));
 
             _queryAllMethod = GetType()
                 .GetMethods(BindingFlags.NonPublic | BindingFlags.Instance)
@@ -76,6 +82,14 @@
             return (Task)genericMethod.Invoke(this, new object[] { mapper, keys.partitionKey, keys.rowKey, _client });
         }
 
+        public Task DeleteAsync(TEntity entity)
+        {
+            var genericMethod = _deleteMethod.MakeGenericMethod(_runtimeType);
+            var keys = _mappers.GetKeysFromEntity(entity);
+
+            return (Task)genericMethod.Invoke(this, new object[] { keys.partitionKey, keys.rowKey, _client });
+        }
+
         public async Task<IEnumerable<TEntity>> GetCollectionAsync(Expression<Func<TEntity, bool>> predicate)
         {
             var results = new List<TEntity>();
@@ -103,6 +117,17 @@
             return results;
         }
 
+        public async Task<Page<TEntity>> GetPageAsync(int pageSize = 100, string continuationToken = null)
+        {
+            var results = new List<TEntity>();
+            var mapper = new FromRuntimeTypeMapper(results, _mappers);
+            var genericMethod = _queryPageMethod.MakeGenericMethod(_runtimeType);
+
+            var token = await (Task<string>)genericMethod.Invoke(this, new object[] { continuationToken, pageSize, mapper, _client });
+
+            return new Page<TEntity>(results, token, pageSize);
+        }
+
         private async Task CreateAsync<T>(IMapper mapper, T entity, TableClient client) where T : class, ITableEntity, new()
         {
             mapper.Map(entity);
@@ -122,15 +147,13 @@
             await client.UpdateEntityAsync(entity, entity.ETag);
         }
 
-        public async Task<Page<TEntity>> GetPageAsync(int pageSize = 100, string continuationToken = null)
+        private async Task DeleteAsync<T>(string partitionKey, string rowKey, TableClient client) where T : class, ITableEntity, new()
         {
-            var results = new List<TEntity>();
-            var mapper = new FromRuntimeTypeMapper(results, _mappers);
-            var genericMethod = _queryPageMethod.MakeGenericMethod(_runtimeType);
-
-            var token = await (Task<string>)genericMethod.Invoke(this, new object[] { continuationToken, pageSize, mapper, _client });
-
-            return new Page<TEntity>(results, token, pageSize);
+            var response = await client.GetEntityAsync<T>(partitionKey, rowKey);
+            var entity = response.Value;
+            
+            if(entity != null)
+                await client.DeleteEntityAsync(partitionKey, rowKey, entity.ETag);
         }
 
         private async Task GetCollectionAsync<T>(IMapper mapper, TableClient client) where T : class, ITableEntity, new()
