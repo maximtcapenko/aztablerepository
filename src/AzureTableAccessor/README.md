@@ -43,5 +43,7 @@ await _repository.CreateAsync(entity); //create entity
 await _repository.UpdateAsync(entity); //update entity
 
 var results = await _repository.GetCollectionAsync(); //fetch all
-var page = await _repository.GetPageAsync(pageSize: 3); // get page
+var page = await _repository.GetPageAsync(pageSize: 3); //get page
+var entity = await repository.LoadAsync(entity); //load entity
+var searchResult = _repository.SingleAsync(e => e.SomeProperty == "condition"); //search single using expression
 var searchResults = await _repository.GetCollectionAsync(e => e.SomeProperty == "condition"); //search using expression

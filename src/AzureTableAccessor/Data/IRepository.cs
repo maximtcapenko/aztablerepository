@@ -12,7 +12,11 @@
         Task UpdateAsync(TEntity entity);
 
         Task DeleteAsync(TEntity entity);
-        
+
+        Task<TEntity> LoadAsync(TEntity entity);
+
+        Task<TEntity> SingleAsync(Expression<Func<TEntity, bool>> predicate);
+
         Task<IEnumerable<TEntity>> GetCollectionAsync();
 
         Task<IEnumerable<TEntity>> GetCollectionAsync(Expression<Func<TEntity, bool>> predicate);

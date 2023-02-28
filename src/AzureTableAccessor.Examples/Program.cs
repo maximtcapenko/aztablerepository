@@ -50,14 +50,14 @@
                 Request = new OutboundSmsRequest
                 {
                     Body = "hello world",
-                    Receivers = new List<string> { 
+                    Receivers = new List<string> {
                         string.Format(number, range.OrderBy(e => randomizer.Next()).Select(e => e.ToString()).ToArray()),
                         string.Format(number, range.OrderBy(e => randomizer.Next()).Select(e => e.ToString()).ToArray())
                     }
                 }
             };
 
-            //await repository.CreateAsync(message);
+            await repository.CreateAsync(message);
 
             var messages = await repository.GetCollectionAsync();
             foreach (var msg in messages)
@@ -67,17 +67,31 @@
 
             Console.WriteLine("-----page 0-----");
             var page = await repository.GetPageAsync(pageSize: 3);
-            foreach(var msg in page.Items)
+            foreach (var msg in page.Items)
             {
                 Console.WriteLine(msg);
             }
             Console.WriteLine("-----page 1-----");
 
             page = await repository.GetPageAsync(5, page.ContinuationToken);
-            foreach(var msg in page.Items)
+            foreach (var msg in page.Items)
             {
                 Console.WriteLine(msg);
             }
+
+            var entity = new Message
+            {
+                ApplicationMessageId = "dd8edfe8-3b16-4943-b5ec-5b9550d39aa8",
+                SmsMessageId = "7e0b687e-f57c-4f19-9d54-0125e30dc9e9"
+            };
+
+            entity = await repository.LoadAsync(entity);
+            Console.WriteLine("-----loaded-----");
+            Console.WriteLine(entity);
+
+            entity = await repository.SingleAsync(e => e.Phone.Number == "+(5)621-0843-97");
+            Console.WriteLine("---find single--");
+            Console.WriteLine(entity);
 
             message = messages.First();
             Console.WriteLine("-----delete-----");
