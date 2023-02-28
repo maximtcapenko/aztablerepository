@@ -40,5 +40,8 @@ class YourEntityTableMappingConfiguration : IMappingConfiguration<YourEntity>
 IRepository<YourEntity> _repository;
 
 await _repository.CreateAsync(entity); //create entity
+await _repository.UpdateAsync(entity); //update entity
+
 var results = await _repository.GetCollectionAsync(); //fetch all
+var page = await repository.GetPageAsync(pageSize: 3); // get page
 var searchResults = await _repository.GetCollectionAsync(e => e.SomeProperty == "condition"); //search using expression

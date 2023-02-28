@@ -21,6 +21,7 @@
         private readonly MethodInfo _updateMethod;
         private readonly MethodInfo _queryAllMethod;
         private readonly MethodInfo _queryMethod;
+        private readonly MethodInfo _queryPageMethod;
         private readonly IEnumerable<IPropertyRuntimeMapper<TEntity>> _mappers;
         private readonly TableClient _client;
         private readonly static ConcurrentDictionary<Type, Func<object>> _instanceFactoryCache
@@ -47,6 +48,10 @@
             _queryMethod = GetType()
                 .GetMethods(BindingFlags.NonPublic | BindingFlags.Instance)
                 .FirstOrDefault(m => m.GetParameters().Length == 3 && m.IsGenericMethod && m.Name == nameof(GetCollectionAsync));
+
+            _queryPageMethod = GetType()
+                .GetMethods(BindingFlags.NonPublic | BindingFlags.Instance)
+                .FirstOrDefault(m => m.GetParameters().Length == 4 && m.IsGenericMethod && m.Name == nameof(GetPageAsync));
         }
 
         public Task CreateAsync(TEntity entity)
@@ -107,7 +112,7 @@
             await client.AddEntityAsync(entity);
         }
 
-        private async Task UpdateAsync<T>(IMapper mapper,  string partitionKey, string rowKey, TableClient client) where T : class, ITableEntity, new()
+        private async Task UpdateAsync<T>(IMapper mapper, string partitionKey, string rowKey, TableClient client) where T : class, ITableEntity, new()
         {
             var response = await client.GetEntityAsync<T>(partitionKey, rowKey);
             var entity = response.Value;
@@ -115,6 +120,17 @@
             mapper.Map(entity);
 
             await client.UpdateEntityAsync(entity, entity.ETag);
+        }
+
+        public async Task<Page<TEntity>> GetPageAsync(int pageSize = 100, string continuationToken = null)
+        {
+            var results = new List<TEntity>();
+            var mapper = new FromRuntimeTypeMapper(results, _mappers);
+            var genericMethod = _queryPageMethod.MakeGenericMethod(_runtimeType);
+
+            var token = await (Task<string>)genericMethod.Invoke(this, new object[] { continuationToken, pageSize, mapper, _client });
+
+            return new Page<TEntity>(results, token, pageSize);
         }
 
         private async Task GetCollectionAsync<T>(IMapper mapper, TableClient client) where T : class, ITableEntity, new()
@@ -129,6 +145,24 @@
                         mapper.Map(entity);
                 }
             }
+        }
+        private async Task<string> GetPageAsync<T>(string continuationToken, int pageSize, IMapper mapper, TableClient client) where T : class, ITableEntity, new()
+        {
+            var pages = client.QueryAsync<T>().AsPages(continuationToken, pageSize);
+
+            var pageEnumerator = pages.GetAsyncEnumerator();
+            await pageEnumerator.MoveNextAsync();
+
+            var page = pageEnumerator.Current;
+            if (page.Values != null)
+            {
+                foreach (var entity in page.Values)
+                    mapper.Map(entity);
+            }
+
+            continuationToken = page.ContinuationToken;
+
+            return continuationToken;
         }
 
         private async Task GetCollectionAsync<T>(IQueryProvider query, IMapper mapper, TableClient client) where T : class, ITableEntity, new()
@@ -199,7 +233,7 @@
             public void Map<T>(T obj) where T : class, ITableEntity, new()
             {
                 var factory = _instanceFactoryCache.GetOrAdd(typeof(TEntity),
-                (t) => Expression.Lambda<Func<object>>(Expression.New(t)).Compile());
+                (type) => Expression.Lambda<Func<object>>(Expression.New(type)).Compile());
 
                 var entity = factory() as TEntity;
 

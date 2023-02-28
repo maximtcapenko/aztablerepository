@@ -14,5 +14,7 @@
         Task<IEnumerable<TEntity>> GetCollectionAsync();
 
         Task<IEnumerable<TEntity>> GetCollectionAsync(Expression<Func<TEntity, bool>> predicate);
+
+        Task<Page<TEntity>> GetPageAsync(int pageSize = 100, string continuationToken = null);
     }
 }

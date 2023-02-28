@@ -57,11 +57,24 @@
                 }
             };
 
-            await repository.CreateAsync(message);
+            //await repository.CreateAsync(message);
 
             var messages = await repository.GetCollectionAsync();
-
             foreach (var msg in messages)
+            {
+                Console.WriteLine(msg);
+            }
+
+            Console.WriteLine("-----page 0-----");
+            var page = await repository.GetPageAsync(3);
+            foreach(var msg in page.Items)
+            {
+                Console.WriteLine(msg);
+            }
+            Console.WriteLine("-----page 1-----");
+
+            page = await repository.GetPageAsync(5, page.ContinuationToken);
+            foreach(var msg in page.Items)
             {
                 Console.WriteLine(msg);
             }
