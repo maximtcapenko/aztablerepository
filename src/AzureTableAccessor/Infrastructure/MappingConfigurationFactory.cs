@@ -6,6 +6,7 @@
     using Data;
     using Microsoft.Extensions.DependencyInjection;
     using System;
+    using System.Reflection;
 
     public interface IRepositoryFactory<TEntity> where TEntity : class
     {
@@ -37,7 +38,7 @@
             public string StorageUri { get; set; }
         }
 
-        public interface IMapRegistrator 
+        public interface IMapRegistrator
         {
             IMapRegistrator Register<T>(IMappingConfiguration<T> configuration) where T : class;
         }
@@ -45,13 +46,14 @@
         public interface IMappingRegistration
         {
             IServiceCollection ConfigureMap(Action<IMapRegistrator> configurator);
+            IServiceCollection ConfigureMap(params Assembly[] assemblies);
         }
 
         internal class InternalMapRegistrator : IMapRegistrator
         {
             private readonly IServiceCollection _services;
 
-            public InternalMapRegistrator(IServiceCollection services) 
+            public InternalMapRegistrator(IServiceCollection services)
             {
                 _services = services;
             }
@@ -86,6 +88,11 @@
                 var registrator = new InternalMapRegistrator(_services);
                 configuration(registrator);
 
+                return _services;
+            }
+
+            public IServiceCollection ConfigureMap(params Assembly[] assemblies)
+            {
                 return _services;
             }
         }

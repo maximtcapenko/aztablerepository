@@ -2,9 +2,9 @@
 {
     using Azure.Data.Tables;
     using Builders;
+    using Infrastructure;
     using System;
     using System.Collections.Concurrent;
-    using System.Collections.Generic;
     using System.Linq;
     using System.Linq.Expressions;
     using System.Reflection;
@@ -30,7 +30,7 @@
             _configuration = new InternalPropertyConfiguration
             {
                 Name = property.GetMemberPath(),
-                Getter = property.Compile(),
+                Getter = MethodFactory.CreateGetter(property),
                 PropertyConfigType = configType
             };
         }
@@ -73,8 +73,8 @@
                var targetparam = _property.Parameters.First();
                var fromparam = Expression.Parameter(typeof(T), "e");
                var field = Expression.PropertyOrField(fromparam, GetKeyPropertyName());
-               var getterfunc = Expression.Lambda<Func<T, TProperty>>(field, fromparam).Compile();
-               var setter = CreateSetter(_property);
+               var getterfunc = MethodFactory.CreateGetter(Expression.Lambda<Func<T, TProperty>>(field, fromparam));
+               var setter = MethodFactory.CreateSetter(_property);
 
                return new MapperDelegate<T, TEntity>((tfrom, tto) =>
                {
@@ -90,45 +90,6 @@
             visitorBuilder.Add(_memberExpression, Expression.PropertyOrField(visitorBuilder.ParameterExpression, GetKeyPropertyName()));
 
         public IPropertyConfiguration<TEntity> GetPropertyConfiguration() => _configuration;
-
-        private Expression<Action<TEntity, TProperty>> CreateSetterInternal(Expression<Func<TEntity, TProperty>> selector)
-        {
-            var valueParam = Expression.Parameter(typeof(TProperty));
-            var body = Expression.Assign(selector.Body, valueParam);
-            return Expression.Lambda<Action<TEntity, TProperty>>(body, selector.Parameters.Single(), valueParam);
-        }
-
-        private Action<TEntity, TProperty> CreateSetter(Expression<Func<TEntity, TProperty>> selector)
-        {
-            var param = Expression.Parameter(typeof(TProperty));
-            var tree = GetSetterExpressionTree(selector.Body as MemberExpression);
-
-            tree.Add(Expression.Invoke(CreateSetterInternal(selector), selector.Parameters.First(), param));
-
-            var block = Expression.Block(tree);
-
-            return Expression.Lambda<Action<TEntity, TProperty>>(block, selector.Parameters.First(), param).Compile();
-        }
-
-        private List<Expression> GetSetterExpressionTree(MemberExpression memberExpression)
-        {
-            var tree = new Stack<Expression>();
-            do
-            {
-                var propertyInfo = memberExpression.Member as PropertyInfo;
-                if (propertyInfo.PropertyType.IsClass && propertyInfo.PropertyType != typeof(string))
-                {
-                    var checkExpression = Expression.Equal(memberExpression, Expression.Constant(null));
-                    var expression = Expression.IfThen(checkExpression, Expression.Assign(memberExpression, Expression.MemberInit(Expression.New(propertyInfo.PropertyType))));
-                    tree.Push(expression);
-                }
-
-                memberExpression = memberExpression.Expression as MemberExpression;
-            }
-            while (memberExpression != null);
-
-            return tree.ToList();
-        }
 
         class InternalPropertyConfiguration : IPropertyConfiguration<TEntity>
         {

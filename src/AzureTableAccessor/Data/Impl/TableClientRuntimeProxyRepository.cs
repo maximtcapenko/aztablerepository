@@ -11,6 +11,7 @@
     using System.Threading.Tasks;
     using Mappers;
     using System.Collections.Concurrent;
+    using Infrastructure;
 
     internal class TableClientRuntimeProxyRepository<TEntity> : IRepository<TEntity>
         where TEntity : class
@@ -27,8 +28,8 @@
         private readonly MethodInfo _queryPageMethod;
         private readonly IEnumerable<IPropertyRuntimeMapper<TEntity>> _mappers;
         private readonly TableClient _client;
-        private readonly static ConcurrentDictionary<Type, Func<object>> _instanceFactoryCache
-         = new ConcurrentDictionary<Type, Func<object>>();
+        private readonly static ConcurrentDictionary<Type, Func<object>> _instanceFactoryCache = new ConcurrentDictionary<Type, Func<object>>();
+        private readonly static ConcurrentDictionary<string, Func<object, object[], Task>> _methodsCache = new ConcurrentDictionary<string, Func<object, object[], Task>>();
 
         public TableClientRuntimeProxyRepository(TableServiceClient tableService, Type type, IEnumerable<IPropertyRuntimeMapper<TEntity>> mappers)
         {
@@ -37,77 +38,70 @@
             _tableService = tableService;
             _client = _tableService.GetTableClient(typeof(TEntity).Name.ToLower());
 
-            _createMethod = GetType()
-                .GetMethods(BindingFlags.NonPublic | BindingFlags.Instance)
-                .FirstOrDefault(m => m.IsGenericMethod && m.Name == nameof(CreateAsync));
-
-            _updateMethod = GetType()
-                .GetMethods(BindingFlags.NonPublic | BindingFlags.Instance)
-                .FirstOrDefault(m => m.IsGenericMethod && m.Name == nameof(UpdateAsync));
-
-            _deleteMethod = GetType()
-                .GetMethods(BindingFlags.NonPublic | BindingFlags.Instance)
-                .FirstOrDefault(m => m.IsGenericMethod && m.Name == nameof(DeleteAsync));
-
-            _loadMethod = GetType()
-                .GetMethods(BindingFlags.NonPublic | BindingFlags.Instance)
-                .FirstOrDefault(m => m.IsGenericMethod && m.Name == nameof(LoadAsync));
-
-            _querySingleMethod = GetType()
-                .GetMethods(BindingFlags.NonPublic | BindingFlags.Instance)
-                .FirstOrDefault(m => m.IsGenericMethod && m.Name == nameof(SingleAsync));
-
-            _queryAllMethod = GetType()
-                .GetMethods(BindingFlags.NonPublic | BindingFlags.Instance)
-                .FirstOrDefault(m => m.GetParameters().Length == 2 && m.IsGenericMethod && m.Name == nameof(GetCollectionAsync));
-
-            _queryMethod = GetType()
-                .GetMethods(BindingFlags.NonPublic | BindingFlags.Instance)
-                .FirstOrDefault(m => m.GetParameters().Length == 3 && m.IsGenericMethod && m.Name == nameof(GetCollectionAsync));
-
-            _queryPageMethod = GetType()
-                .GetMethods(BindingFlags.NonPublic | BindingFlags.Instance)
-                .FirstOrDefault(m => m.GetParameters().Length == 4 && m.IsGenericMethod && m.Name == nameof(GetPageAsync));
+            _createMethod = GetType().FindNonPublicGenericMethod(nameof(CreateAsync));
+            _updateMethod = GetType().FindNonPublicGenericMethod(nameof(UpdateAsync));
+            _deleteMethod = GetType().FindNonPublicGenericMethod(nameof(DeleteAsync));
+            _loadMethod = GetType().FindNonPublicGenericMethod(nameof(LoadAsync));
+            _querySingleMethod = GetType().FindNonPublicGenericMethod(nameof(SingleAsync));
+            _queryAllMethod = GetType().FindNonPublicGenericMethod(nameof(GetCollectionAsync), 2);
+            _queryMethod = GetType().FindNonPublicGenericMethod(nameof(GetCollectionAsync), 3);
+            _queryPageMethod = GetType().FindNonPublicGenericMethod(nameof(GetPageAsync));
         }
 
         public Task CreateAsync(TEntity entity)
         {
             var mapper = new ToRuntimeTypeMapper(entity, _mappers);
-            var genericMethod = _createMethod.MakeGenericMethod(_runtimeType);
+            var method = _methodsCache.GetOrAdd($"{_createMethod.Name}-{(_runtimeType.Name)}", key =>
+            {
+                var genericMethod = _createMethod.MakeGenericMethod(_runtimeType);
+                return MethodFactory.CreateGenericMethod<Task>(genericMethod);
+            });
 
             var factory = _instanceFactoryCache.GetOrAdd(_runtimeType,
                 (t) => Expression.Lambda<Func<object>>(Expression.New(t)).Compile());
 
             var instance = factory();
 
-            return (Task)genericMethod.Invoke(this, new object[] { mapper, instance, _client });
+            return method(this, new object[] { mapper, instance, _client });
         }
 
         public Task UpdateAsync(TEntity entity)
         {
             var mapper = new ToRuntimeTypeMapper(entity, _mappers);
-            var genericMethod = _updateMethod.MakeGenericMethod(_runtimeType);
             var keys = _mappers.GetKeysFromEntity(entity);
+            var method = _methodsCache.GetOrAdd($"{_updateMethod.Name}-{(_runtimeType.Name)}", key =>
+            {
+                var genericMethod = _updateMethod.MakeGenericMethod(_runtimeType);
+                return MethodFactory.CreateGenericMethod<Task>(genericMethod);
+            });
 
-            return (Task)genericMethod.Invoke(this, new object[] { mapper, keys.partitionKey, keys.rowKey, _client });
+            return method(this, new object[] { mapper, keys.partitionKey, keys.rowKey, _client });
         }
 
         public Task DeleteAsync(TEntity entity)
         {
-            var genericMethod = _deleteMethod.MakeGenericMethod(_runtimeType);
             var keys = _mappers.GetKeysFromEntity(entity);
+            var method = _methodsCache.GetOrAdd($"{_deleteMethod.Name}-{(_runtimeType.Name)}", key =>
+            {
+                var genericMethod = _deleteMethod.MakeGenericMethod(_runtimeType);
+                return MethodFactory.CreateGenericMethod<Task>(genericMethod);
+            });
 
-            return (Task)genericMethod.Invoke(this, new object[] { keys.partitionKey, keys.rowKey, _client });
+            return method(this, new object[] { keys.partitionKey, keys.rowKey, _client });
         }
 
         public async Task<TEntity> LoadAsync(TEntity entity)
         {
-            var genericMethod = _loadMethod.MakeGenericMethod(_runtimeType);
             var keys = _mappers.GetKeysFromEntity(entity);
             var results = new List<TEntity>();
             var mapper = new FromRuntimeTypeMapper(results, _mappers);
+            var method = _methodsCache.GetOrAdd($"{_loadMethod.Name}-{(_runtimeType.Name)}", key =>
+            {
+                var genericMethod = _loadMethod.MakeGenericMethod(_runtimeType);
+                return MethodFactory.CreateGenericMethod<Task>(genericMethod);
+            });
 
-            await (Task)genericMethod.Invoke(this, new object[] { mapper, keys.partitionKey, keys.rowKey, _client });
+            await method(this, new object[] { mapper, keys.partitionKey, keys.rowKey, _client });
 
             return results.FirstOrDefault();
         }
@@ -116,14 +110,15 @@
         {
             var results = new List<TEntity>();
             var mapper = new FromRuntimeTypeMapper(results, _mappers);
-
-            var genericMethod = _querySingleMethod.MakeGenericMethod(_runtimeType);
-
-            //map expression
             var query = new RuntimeQueryMapper(predicate, _mappers.Where(e => e is ITranslateVisitorBuilderVisitor)
                 .Select(e => e as ITranslateVisitorBuilderVisitor).ToList());
+            var method = _methodsCache.GetOrAdd($"{_querySingleMethod.Name}-{(_runtimeType.Name)}", key =>
+            {
+                var genericMethod = _querySingleMethod.MakeGenericMethod(_runtimeType);
+                return MethodFactory.CreateGenericMethod<Task>(genericMethod);
+            });
 
-            await (Task)genericMethod.Invoke(this, new object[] { query, mapper, _client });
+            await method(this, new object[] { query, mapper, _client });
 
             return results.FirstOrDefault();
         }
@@ -132,14 +127,15 @@
         {
             var results = new List<TEntity>();
             var mapper = new FromRuntimeTypeMapper(results, _mappers);
-
-            var genericMethod = _queryMethod.MakeGenericMethod(_runtimeType);
-
-            //map expression
             var query = new RuntimeQueryMapper(predicate, _mappers.Where(e => e is ITranslateVisitorBuilderVisitor)
                 .Select(e => e as ITranslateVisitorBuilderVisitor).ToList());
+            var method = _methodsCache.GetOrAdd($"{_queryMethod.Name}-{(_runtimeType.Name)}", key =>
+            {
+                var genericMethod = _queryMethod.MakeGenericMethod(_runtimeType);
+                return MethodFactory.CreateGenericMethod<Task>(genericMethod);
+            });
 
-            await (Task)genericMethod.Invoke(this, new object[] { query, mapper, _client });
+            await method(this, new object[] { query, mapper, _client });
 
             return results;
         }
@@ -148,9 +144,13 @@
         {
             var results = new List<TEntity>();
             var mapper = new FromRuntimeTypeMapper(results, _mappers);
-            var genericMethod = _queryAllMethod.MakeGenericMethod(_runtimeType);
+            var method = _methodsCache.GetOrAdd($"{_queryAllMethod.Name}All-{(_runtimeType.Name)}", key =>
+            {
+                var genericMethod = _queryAllMethod.MakeGenericMethod(_runtimeType);
+                return MethodFactory.CreateGenericMethod<Task>(genericMethod);
+            });
 
-            await (Task)genericMethod.Invoke(this, new object[] { mapper, _client });
+            await method(this, new object[] { mapper, _client });
 
             return results;
         }
@@ -160,10 +160,16 @@
             var results = new List<TEntity>();
             var mapper = new FromRuntimeTypeMapper(results, _mappers);
             var genericMethod = _queryPageMethod.MakeGenericMethod(_runtimeType);
+            var tokens = new List<string>();
+            var method = _methodsCache.GetOrAdd($"{_queryPageMethod.Name}-{(_runtimeType.Name)}", key =>
+            {
+                var genericMethod = _queryPageMethod.MakeGenericMethod(_runtimeType);
+                return MethodFactory.CreateGenericMethod<Task>(genericMethod);
+            });
 
-            var token = await (Task<string>)genericMethod.Invoke(this, new object[] { mapper, continuationToken, pageSize, _client });
+            await method(this, new object[] { mapper, tokens, continuationToken, pageSize, _client });
 
-            return new Page<TEntity>(results, token, pageSize);
+            return new Page<TEntity>(results, tokens.FirstOrDefault(), pageSize);
         }
 
         private async Task CreateAsync<T>(IMapper mapper, T entity, TableClient client) where T : class, ITableEntity, new()
@@ -240,7 +246,7 @@
             }
         }
 
-        private async Task<string> GetPageAsync<T>(IMapper mapper, string continuationToken, int pageSize, TableClient client) where T : class, ITableEntity, new()
+        private async Task GetPageAsync<T>(IMapper mapper, List<string> tokens, string continuationToken, int pageSize, TableClient client) where T : class, ITableEntity, new()
         {
             var pages = client.QueryAsync<T>().AsPages(continuationToken, pageSize);
 
@@ -253,10 +259,8 @@
                 foreach (var entity in page.Values)
                     mapper.Map(entity);
             }
-
-            continuationToken = page.ContinuationToken;
-
-            return continuationToken;
+            if (page.ContinuationToken != null)
+                tokens.Add(page.ContinuationToken);
         }
 
         private async Task GetCollectionAsync<T>(IQueryProvider query, IMapper mapper, TableClient client) where T : class, ITableEntity, new()

@@ -2,6 +2,7 @@
 {
     using Azure.Data.Tables;
     using Builders;
+    using Infrastructure;
     using System;
     using System.Collections.Concurrent;
     using System.Linq;
@@ -39,12 +40,11 @@
             var mapper = _mappersCache.GetOrAdd(GetKeyName<TEntity, T>(_fieldName), (s) =>
               {
                   //build delegate for mapping
-                  var getContentFunc = _property.Compile();
+                  var getContentFunc = MethodFactory.CreateGetter(_property);
 
                   var fromparam = Expression.Parameter(typeof(string));
                   var targetparam = Expression.Parameter(typeof(T), "e");
                   var field = Expression.PropertyOrField(targetparam, _fieldName);
-
                   var expression = Expression.Assign(field, fromparam);
 
                   //cache for type
@@ -70,8 +70,7 @@
                 var fromparam = Expression.Parameter(typeof(T));
                 var getter = Expression.PropertyOrField(fromparam, _fieldName);
                 var toParam = Expression.Parameter(typeof(TProperty));
-                var getContentFunc = Expression.Lambda<Func<T, string>>(getter, fromparam).Compile();
-
+                var getContentFunc = MethodFactory.CreateGetter(Expression.Lambda<Func<T, string>>(getter, fromparam));
                 var expression = Expression.Assign(_property.Body, toParam);
 
                 //cache for type

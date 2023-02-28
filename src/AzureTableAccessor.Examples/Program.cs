@@ -89,6 +89,14 @@
             Console.WriteLine("-----loaded-----");
             Console.WriteLine(entity);
 
+            entity = new Message();
+            entity.ApplicationMessageId = "d8ca8d8b-8c80-4d31-ab48-5029d3e87c1f";
+            entity.SmsMessageId = "5a332e82-a62b-44d9-97bf-a56b3751b817";
+
+            entity = await repository.LoadAsync(entity);
+            Console.WriteLine("-----loaded-----");
+            Console.WriteLine(entity);
+
             entity = await repository.SingleAsync(e => e.Phone.Number == "+(5)621-0843-97");
             Console.WriteLine("---find single--");
             Console.WriteLine(entity);
