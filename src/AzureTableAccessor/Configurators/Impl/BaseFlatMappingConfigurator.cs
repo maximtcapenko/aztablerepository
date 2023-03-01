@@ -8,6 +8,7 @@
     using Builders;
     using Data.Impl;
     using Data;
+    using Infrastructure;
     using Mappers;
 
     public class BaseFlatMappingConfigurator<TEntity> : IMappingConfigurator<TEntity>
@@ -26,8 +27,18 @@
         {
             property.CheckPropertyExpression();
             _memberMappers.Add(new ContentPropertyMapper<TEntity, TProperty>(property));
+            
             return this;
         }
+
+        public IMappingConfigurator<TEntity> Content<TProperty>(Expression<Func<TEntity, TProperty>> property,
+            IContentSerializer contentSerializer) where TProperty : class
+            {
+                property.CheckPropertyExpression();
+                _memberMappers.Add(new ContentPropertyMapper<TEntity, TProperty>(property, contentSerializer));
+
+                return this;
+            }
 
         public IMappingConfigurator<TEntity> PartitionKey<TProperty>(Expression<Func<TEntity, TProperty>> property)
         {
