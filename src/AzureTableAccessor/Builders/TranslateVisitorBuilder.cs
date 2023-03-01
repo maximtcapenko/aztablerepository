@@ -1,11 +1,11 @@
 ﻿namespace AzureTableAccessor.Builders
 {
-    using Azure.Data.Tables;
     using System.Collections.Generic;
     using System.Linq.Expressions;
+    using Azure.Data.Tables;
 
     internal class TranslateVisitorBuilder<TTo>
-       where TTo : class, ITableEntity
+           where TTo : class, ITableEntity
     {
         private readonly List<MemberVisitorFactory> _factories = new List<MemberVisitorFactory>();
 
@@ -15,7 +15,7 @@
         {
             _factories.Add(new MemberVisitorFactory(() => MemberVisitor.Create(from, to, ParameterExpression)));
         }
-        
+
         public TranslateVisitor Build() => new TranslateVisitor(_factories);
     }
 }

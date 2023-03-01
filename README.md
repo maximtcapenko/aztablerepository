@@ -32,8 +32,8 @@ class YourEntityTableMappingConfiguration : IMappingConfiguration<YourEntity>
     options.StorageUri = "StorageUri";
     options.StorageAccountKey = "StorageAccountKey";
     options.AccountName = "AccountName";
- }).ConfigureMap(configurator => configurator.Register(new YourEntityTableMappingConfiguration()));
-
+ }).ConfigureMap(configurator 
+      => configurator.Register(new YourEntityTableMappingConfiguration())); // or ConfigureMap(typeof(YourType).Assembly)
 ```
 4. Inject repository into your service
 ```c#

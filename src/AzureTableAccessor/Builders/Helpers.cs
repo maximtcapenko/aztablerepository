@@ -1,19 +1,19 @@
 ﻿namespace AzureTableAccessor.Builders
 {
-    using Azure.Data.Tables;
-    using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Data.HashFunction.xxHash;
     using System.IO;
-    using System.Linq;
     using System.Linq.Expressions;
-    using System.Reflection;
+    using System.Linq;
     using System.Reflection.Emit;
+    using System.Reflection;
     using System.Runtime.Serialization.Formatters.Binary;
     using System.Text;
+    using System;
+    using Azure.Data.Tables;
 
-    internal class AnonymousProxyTypeBuilder
+internal class AnonymousProxyTypeBuilder
     {
         private static AssemblyName _assemblyName = new AssemblyName() { Name = "AnonymousProxyTypes" };
         private static string DefaultTypeNamePrefix = "Dynamic";

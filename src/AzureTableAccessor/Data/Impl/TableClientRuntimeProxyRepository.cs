@@ -1,20 +1,20 @@
 ﻿namespace AzureTableAccessor.Data.Impl
 {
-    using Azure.Data.Tables;
-    using Builders;
-    using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
-    using Data;
-    using System.Linq;
     using System.Linq.Expressions;
+    using System.Linq;
     using System.Reflection;
     using System.Threading.Tasks;
-    using Mappers;
-    using System.Collections.Concurrent;
+    using System;
+    using Azure.Data.Tables;
+    using Builders;
+    using Data;
     using Infrastructure;
+    using Mappers;
 
     internal class TableClientRuntimeProxyRepository<TEntity> : IRepository<TEntity>
-        where TEntity : class
+            where TEntity : class
     {
         private readonly Type _runtimeType;
         private readonly TableServiceClient _tableService;
@@ -197,7 +197,6 @@
             }
 
             await client.UpdateEntityAsync(entity, entity.ETag);
-
         }
 
         private async Task DeleteAsync<T>(string partitionKey, string rowKey, TableClient client) where T : class, ITableEntity, new()

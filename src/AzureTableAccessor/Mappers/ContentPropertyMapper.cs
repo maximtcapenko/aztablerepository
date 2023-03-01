@@ -1,21 +1,23 @@
 ﻿namespace AzureTableAccessor.Mappers
 {
+    using System.Collections.Concurrent;
+    using System.Linq.Expressions;
+    using System.Linq;
+    using System.Text.Json;
+    using System;
     using Azure.Data.Tables;
     using Builders;
     using Infrastructure;
-    using System;
-    using System.Collections.Concurrent;
-    using System.Linq;
-    using System.Linq.Expressions;
-    using System.Text.Json;
 
     internal class ContentPropertyMapper<TEntity, TProperty> :
-        IPropertyRuntimeMapper<TEntity>,
-        IPropertyBuilder<AnonymousProxyTypeBuilder>
-        where TEntity : class
+            IPropertyRuntimeMapper<TEntity>,
+            IPropertyBuilder<AnonymousProxyTypeBuilder>
+            where TEntity : class
     {
         private readonly Expression<Func<TEntity, TProperty>> _property;
         private readonly string _fieldName;
+        private readonly IContentSerializer _contentSerializer;
+
         private static ConcurrentDictionary<string, IMapperDelegate> _mappersCache
                 = new ConcurrentDictionary<string, IMapperDelegate>();
         private static string GetKeyName<TFrom, TTo>(string property)
@@ -25,6 +27,13 @@
         {
             _property = property;
             _fieldName = $"Content_{property.GetMemberPath()}";
+            _contentSerializer = new DefaultContentSerializer();
+        }
+        public ContentPropertyMapper(Expression<Func<TEntity, TProperty>> property, IContentSerializer contentSerializer)
+        {
+            _property = property;
+            _fieldName = $"Content_{property.GetMemberPath()}";
+            _contentSerializer = contentSerializer;
         }
 
         public void Build(AnonymousProxyTypeBuilder builder)
@@ -53,7 +62,7 @@
                   return new MapperDelegate<TEntity, T>((from, to) =>
                   {
                       var data = getContentFunc(from);
-                      var json = JsonSerializer.Serialize(data);
+                      var json = _contentSerializer.Serialize(data);
                       func(json, to);
                   });
               });
@@ -82,13 +91,19 @@
                     var json = getContentFunc(from);
                     if (!string.IsNullOrEmpty(json))
                     {
-                        var conetnt = JsonSerializer.Deserialize<TProperty>(json);
+                        var conetnt = _contentSerializer.Deserialize<TProperty>(json);
                         func(conetnt, to);
                     }
                 });
             });
 
             (mapper as MapperDelegate<T, TEntity>)?.Map(from, to);
+        }
+
+        class DefaultContentSerializer : IContentSerializer
+        {
+            public TValue Deserialize<TValue>(string value) => JsonSerializer.Deserialize<TValue>(value);
+            public string Serialize<TValue>(TValue value) => JsonSerializer.Serialize(value);
         }
     }
 }
