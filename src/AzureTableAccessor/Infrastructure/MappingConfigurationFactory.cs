@@ -1,12 +1,13 @@
 ﻿namespace AzureTableAccessor.Infrastructure
 {
-    using Azure.Data.Tables;
-    using Configurators;
-    using Configurators.Impl;
-    using Data;
-    using Microsoft.Extensions.DependencyInjection;
-    using System;
+    using System.Linq;
     using System.Reflection;
+    using System;
+    using Microsoft.Extensions.DependencyInjection;
+    using Azure.Data.Tables;
+    using Configurators.Impl;
+    using Configurators;
+    using Data;
 
     public interface IRepositoryFactory<TEntity> where TEntity : class
     {
@@ -68,7 +69,7 @@
                     return new DefaultRepositoryFactory<T>(configurator, provider.GetRequiredService<TableServiceClient>());
                 });
 
-                _services.AddTransient(provider => provider.GetRequiredService<IRepositoryFactory<T>>().Create());
+                _services.AddScoped(provider => provider.GetRequiredService<IRepositoryFactory<T>>().Create());
 
                 return this;
             }
@@ -93,6 +94,20 @@
 
             public IServiceCollection ConfigureMap(params Assembly[] assemblies)
             {
+                ConfigureMap(registrator =>
+                {
+                    var method = registrator.GetType().GetMethod(nameof(IMapRegistrator.Register));
+                    foreach (var serviceType in assemblies.SelectMany(e => e.GetTypes()))
+                    {
+                        ReflectionUtils.ProcessGenericInterfaceImpls(serviceType, typeof(IMappingConfiguration<>), (@interface, implementation, name) =>
+                        {
+                            var genericMethod = method.MakeGenericMethod(@interface.GetGenericArguments());
+                            var instance = Activator.CreateInstance(implementation);
+                            genericMethod.Invoke(registrator, new object[] { instance });
+                        });
+                    }
+                });
+
                 return _services;
             }
         }

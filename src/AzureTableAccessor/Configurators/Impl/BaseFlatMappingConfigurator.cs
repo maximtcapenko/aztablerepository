@@ -1,17 +1,17 @@
 ﻿namespace AzureTableAccessor.Configurators.Impl
 {
+    using System.Collections.Generic;
+    using System.Linq.Expressions;
+    using System.Linq;
+    using System;
     using Azure.Data.Tables;
     using Builders;
-    using Data;
     using Data.Impl;
+    using Data;
     using Mappers;
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Linq.Expressions;
 
     public class BaseFlatMappingConfigurator<TEntity> : IMappingConfigurator<TEntity>
-        where TEntity : class
+                where TEntity : class
     {
         private readonly List<IPropertyBuilder<AnonymousProxyTypeBuilder>> _memberMappers = new List<IPropertyBuilder<AnonymousProxyTypeBuilder>>();
         private readonly AnonymousProxyTypeBuilder _typeBuilder;
@@ -74,7 +74,7 @@
             var partitionsKeys = builders.Where(e => e.GetType().GetGenericTypeDefinition() == typeof(PartitionKeyPropertyMapper<,>));
             partitionsKeys.ValidateKeys("partition key");
 
-            var rowKeys = builders.Where(e => e.GetType().GetGenericTypeDefinition() == typeof(RowKeyPropertyMapper<,>)); 
+            var rowKeys = builders.Where(e => e.GetType().GetGenericTypeDefinition() == typeof(RowKeyPropertyMapper<,>));
             rowKeys.ValidateKeys("row key");
         }
     }

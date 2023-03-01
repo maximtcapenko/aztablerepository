@@ -1,6 +1,5 @@
 ﻿namespace AzureTableAccessor.Examples
 {
-
     using Configurators;
     using Data;
     using Infrastructure;
@@ -25,8 +24,7 @@
                 options.StorageUri = config["StorageUri"];
                 options.StorageAccountKey = config["StorageAccountKey"];
                 options.AccountName = config["AccountName"];
-            }).ConfigureMap(configurator
-            => configurator.Register(new MessageTableMappingConfiguration()));
+            }).ConfigureMap(typeof(Program).Assembly);
 
 
             var provider = services.BuildServiceProvider();

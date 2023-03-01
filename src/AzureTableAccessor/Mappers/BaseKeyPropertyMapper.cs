@@ -1,18 +1,18 @@
 ﻿namespace AzureTableAccessor.Mappers
 {
+    using System.Collections.Concurrent;
+    using System.Linq.Expressions;
+    using System.Linq;
+    using System.Reflection;
+    using System;
     using Azure.Data.Tables;
     using Builders;
     using Infrastructure;
-    using System;
-    using System.Collections.Concurrent;
-    using System.Linq;
-    using System.Linq.Expressions;
-    using System.Reflection;
 
     internal abstract class BaseKeyPropertyMapper<TEntity, TProperty> : IPropertyRuntimeMapper<TEntity>,
-        IPropertyBuilder<AnonymousProxyTypeBuilder>, ITranslateVisitorBuilderVisitor,
-        IPropertyConfigurationProvider<TEntity>
-        where TEntity : class
+            IPropertyBuilder<AnonymousProxyTypeBuilder>, ITranslateVisitorBuilderVisitor,
+            IPropertyConfigurationProvider<TEntity>
+            where TEntity : class
     {
         private readonly MemberExpression _memberExpression;
         private readonly Expression<Func<TEntity, TProperty>> _property;
@@ -43,8 +43,8 @@
 
         public void Map<T>(TEntity from, T to) where T : class, ITableEntity
         {
-            ArgumentNullException.ThrowIfNull(from, nameof(from));
-            ArgumentNullException.ThrowIfNull(to, nameof(to));
+            if (from == null) throw new ArgumentNullException(nameof(from));
+            if (to == null) throw new ArgumentNullException(nameof(to));
 
             var mapper = _mappersCache.GetOrAdd(GetKeyName<TEntity, T>(GetKeyPropertyName()), (keyName) =>
              {
@@ -64,8 +64,8 @@
 
         public void Map<T>(T from, TEntity to) where T : class
         {
-            ArgumentNullException.ThrowIfNull(from, nameof(from));
-            ArgumentNullException.ThrowIfNull(to, nameof(to));
+            if (from == null) throw new ArgumentNullException(nameof(from));
+            if (to == null) throw new ArgumentNullException(nameof(to));
 
             var mapper = _mappersCache.GetOrAdd(GetKeyName<T, TEntity>(GetKeyPropertyName()), (keyName) =>
            {

@@ -1,12 +1,12 @@
 ﻿namespace AzureTableAccessor.Mappers
 {
-    using Builders;
-    using System;
     using System.Collections.Concurrent;
     using System.Linq.Expressions;
+    using System;
+    using Builders;
 
-    internal class PropertyMapper<TEntity, TProperty> : BaseKeyPropertyMapper<TEntity, TProperty> 
-        where TEntity : class
+    internal class PropertyMapper<TEntity, TProperty> : BaseKeyPropertyMapper<TEntity, TProperty>
+            where TEntity : class
     {
         private readonly MemberExpression _memberExpression;
         private readonly string _fieldName;
