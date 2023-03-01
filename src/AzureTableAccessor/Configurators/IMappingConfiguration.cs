@@ -2,6 +2,6 @@
 {
     public interface IMappingConfiguration<TEntity> where TEntity : class
     {
-        public void Configure(IMappingConfigurator<TEntity> configurator) { }
+         void Configure(IMappingConfigurator<TEntity> configurator);
     }
 }

@@ -43,8 +43,8 @@
 
         public void Map<T>(TEntity from, T to) where T : class, ITableEntity
         {
-            ArgumentNullException.ThrowIfNull(from, nameof(from));
-            ArgumentNullException.ThrowIfNull(to, nameof(to));
+            if (from == null) throw new ArgumentNullException(nameof(from));
+            if (to == null) throw new ArgumentNullException(nameof(to));
 
             var mapper = _mappersCache.GetOrAdd(GetKeyName<TEntity, T>(_fieldName), (s) =>
               {
@@ -72,6 +72,9 @@
 
         public void Map<T>(T from, TEntity to) where T : class
         {
+            if (from == null) throw new ArgumentNullException(nameof(from));
+            if (to == null) throw new ArgumentNullException(nameof(to));
+            
             var mapper = _mappersCache.GetOrAdd(GetKeyName<T, TEntity>(_fieldName), (s) =>
             {
                 //build delegate for mapping

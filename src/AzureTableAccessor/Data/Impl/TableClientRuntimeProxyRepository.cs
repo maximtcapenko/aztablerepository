@@ -217,8 +217,8 @@
 
         private async Task LoadAsync<T>(IMapper mapper, string partitionKey, string rowKey, TableClient client) where T : class, ITableEntity, new()
         {
-            ArgumentNullException.ThrowIfNull(partitionKey, nameof(partitionKey));
-            ArgumentNullException.ThrowIfNull(rowKey, nameof(rowKey));
+            if(string.IsNullOrEmpty(partitionKey)) throw new ArgumentNullException(nameof(partitionKey));
+            if(string.IsNullOrEmpty(rowKey)) throw new ArgumentNullException(nameof(rowKey));
 
             try
             {
