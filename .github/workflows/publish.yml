@@ -50,3 +50,8 @@ jobs:
         shell: bash
         working-directory: src/AzureTableAccessor
         run: dotnet nuget push build/*.nupkg --source $NUGET_SOURCE --api-key $NUGET_API_KEY
+
+      - name: Publish snupkg
+        shell: bash
+        working-directory: src/AzureTableAccessor
+        run: dotnet nuget push build/*.snupkg --source $NUGET_SOURCE --api-key $NUGET_API_KEY

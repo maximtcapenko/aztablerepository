@@ -11,7 +11,7 @@
 
     internal class ContentPropertyMapper<TEntity, TProperty> :
             IPropertyRuntimeMapper<TEntity>,
-            IPropertyBuilder<AnonymousProxyTypeBuilder>
+            IPropertyDescriber<AnonymousProxyTypeBuilder>
             where TEntity : class
     {
         private readonly Expression<Func<TEntity, TProperty>> _property;
@@ -36,7 +36,7 @@
             _contentSerializer = contentSerializer;
         }
 
-        public void Build(AnonymousProxyTypeBuilder builder)
+        public void Describe(AnonymousProxyTypeBuilder builder)
         {
             builder.DefineField(_fieldName, typeof(string));
         }

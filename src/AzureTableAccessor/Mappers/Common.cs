@@ -18,9 +18,9 @@
         void Map<T>(T from, TEntity to) where T : class;
     }
 
-    internal interface IPropertyBuilder<TBuilder>
+    internal interface IPropertyDescriber<TBuilder>
     {
-        void Build(TBuilder builder);
+        void Describe(TBuilder builder);
     }
 
     internal interface IPropertyConfiguration<TEntity>

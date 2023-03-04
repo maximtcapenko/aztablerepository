@@ -7,7 +7,8 @@ namespace AzureTableAccessor.Builders
     using System.Reflection;
     using System;
     using Azure.Data.Tables;
-    
+    using Mappers;
+
     internal class AnonymousProxyTypeBuilder
     {
         private static AssemblyName _assemblyName = new AssemblyName() { Name = "AnonymousProxyTypes" };
@@ -23,7 +24,7 @@ namespace AzureTableAccessor.Builders
         }
 
 
-        public string GetName() => $"{DefaultTypeNamePrefix}_{string.Join(";", _definedMembers.Select(e => $"{e.Key}_{e.Value.Name}")).Hash()}";
+        public string GetDynamicTypeName() => $"{DefaultTypeNamePrefix}_{string.Join(";", _definedMembers.Select(e => $"{e.Key}_{e.Value.Name}")).Hash()}";
 
         public static AnonymousProxyTypeBuilder GetBuilder() => new AnonymousProxyTypeBuilder();
 
@@ -35,9 +36,13 @@ namespace AzureTableAccessor.Builders
             _definedMembers[name] = type;
         }
 
-        public Type CreateType()
+        public Type CreateType(IEnumerable<IPropertyDescriber<AnonymousProxyTypeBuilder>> propertyDescribers)
         {
-            var key = GetName();
+            foreach (var builder in propertyDescribers)
+                builder.Describe(this);
+
+            var key = GetDynamicTypeName();
+
             if (!_typeCache.ContainsKey(key))
             {
                 var typeBuilder = GetTypeBuilder(key);

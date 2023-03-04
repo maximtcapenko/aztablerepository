@@ -28,8 +28,11 @@
         private readonly MethodInfo _queryPageMethod;
         private readonly IEnumerable<IPropertyRuntimeMapper<TEntity>> _mappers;
         private readonly TableClient _client;
+        private readonly Dictionary<string, object> _internalTableCache = new Dictionary<string, object>();
+        private const string _chacheKeyPattern = "{0}-{1}";
         private readonly static ConcurrentDictionary<Type, Func<object>> _instanceFactoryCache = new ConcurrentDictionary<Type, Func<object>>();
         private readonly static ConcurrentDictionary<string, Func<object, object[], Task>> _methodsCache = new ConcurrentDictionary<string, Func<object, object[], Task>>();
+
 
         public TableClientRuntimeProxyRepository(TableServiceClient tableService, Type type, IEnumerable<IPropertyRuntimeMapper<TEntity>> mappers)
         {
@@ -103,7 +106,8 @@
 
             await method(this, new object[] { mapper, keys.partitionKey, keys.rowKey, _client });
 
-            return results.FirstOrDefault();
+            entity = results.FirstOrDefault();
+            return entity;
         }
 
         public async Task<TEntity> SingleAsync(Expression<Func<TEntity, bool>> predicate)
@@ -186,10 +190,18 @@
             T entity = null;
             try
             {
-                var response = await client.GetEntityAsync<T>(partitionKey, rowKey);
-                entity = response.Value;
-
-                mapper.Map(entity);
+                var key = string.Format(_chacheKeyPattern, partitionKey, rowKey);
+                if (_internalTableCache.TryGetValue(key, out var cache))
+                {
+                    entity = (T)cache;
+                }
+                else
+                {
+                    var response = await client.GetEntityAsync<T>(partitionKey, rowKey);
+                    entity = response.Value;
+                }
+                if (entity != null)
+                    mapper.Map(entity);
             }
             catch (Azure.RequestFailedException ex) when (ex.Status == 404)
             {
@@ -204,8 +216,16 @@
             T entity = null;
             try
             {
-                var response = await client.GetEntityAsync<T>(partitionKey, rowKey);
-                entity = response.Value;
+                var key = string.Format(_chacheKeyPattern, partitionKey, rowKey);
+                if (_internalTableCache.TryGetValue(key, out var cache))
+                {
+                    entity = (T)cache;
+                }
+                else
+                {
+                    var response = await client.GetEntityAsync<T>(partitionKey, rowKey);
+                    entity = response.Value;
+                }
             }
             catch (Azure.RequestFailedException ex) when (ex.Status == 404)
             {
@@ -217,12 +237,13 @@
 
         private async Task LoadAsync<T>(IMapper mapper, string partitionKey, string rowKey, TableClient client) where T : class, ITableEntity, new()
         {
-            if(string.IsNullOrEmpty(partitionKey)) throw new ArgumentNullException(nameof(partitionKey));
-            if(string.IsNullOrEmpty(rowKey)) throw new ArgumentNullException(nameof(rowKey));
+            if (string.IsNullOrEmpty(partitionKey)) throw new ArgumentNullException(nameof(partitionKey));
+            if (string.IsNullOrEmpty(rowKey)) throw new ArgumentNullException(nameof(rowKey));
 
             try
             {
                 var result = await client.GetEntityAsync<T>(partitionKey, rowKey);
+                _internalTableCache[string.Format(_chacheKeyPattern, partitionKey, rowKey)] = result.Value;
                 mapper.Map(result.Value);
             }
             catch (Azure.RequestFailedException ex) when (ex.Status == 404)
