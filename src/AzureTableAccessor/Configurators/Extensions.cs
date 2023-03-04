@@ -10,7 +10,7 @@ namespace AzureTableAccessor.Configurators
 
     internal static class Extensions
     {
-        internal static void ValidateKeys<T>(this IEnumerable<IPropertyBuilder<T>> keys, string keyType)
+        internal static void ValidateKeys<T>(this IEnumerable<IPropertyDescriber<T>> keys, string keyType)
         {
             if (keys.Count() == 0)
                 throw new PropertyConfigurationException($"{keyType} is not configured");

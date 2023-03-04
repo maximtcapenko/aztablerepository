@@ -10,7 +10,7 @@
     using Infrastructure;
 
     internal abstract class BaseKeyPropertyMapper<TEntity, TProperty> : IPropertyRuntimeMapper<TEntity>,
-            IPropertyBuilder<AnonymousProxyTypeBuilder>, ITranslateVisitorBuilderVisitor,
+            IPropertyDescriber<AnonymousProxyTypeBuilder>, ITranslateVisitorBuilderVisitor,
             IPropertyConfigurationProvider<TEntity>
             where TEntity : class
     {
@@ -35,7 +35,7 @@
             };
         }
 
-        public void Build(AnonymousProxyTypeBuilder builder)
+        public void Describe(AnonymousProxyTypeBuilder builder)
         {
             var propertyInfo = _memberExpression.Member as PropertyInfo;
             builder.DefineField(GetKeyPropertyName(), propertyInfo.PropertyType);

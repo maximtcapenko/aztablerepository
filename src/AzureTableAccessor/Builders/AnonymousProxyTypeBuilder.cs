@@ -7,7 +7,8 @@ namespace AzureTableAccessor.Builders
     using System.Reflection;
     using System;
     using Azure.Data.Tables;
-    
+    using Mappers;
+
     internal class AnonymousProxyTypeBuilder
     {
         private static AssemblyName _assemblyName = new AssemblyName() { Name = "AnonymousProxyTypes" };
@@ -22,22 +23,29 @@ namespace AzureTableAccessor.Builders
                 .DefineDynamicModule(_assemblyName.Name);
         }
 
-
-        public string GetName() => $"{DefaultTypeNamePrefix}_{string.Join(";", _definedMembers.Select(e => $"{e.Key}_{e.Value.Name}")).Hash()}";
-
-        public static AnonymousProxyTypeBuilder GetBuilder() => new AnonymousProxyTypeBuilder();
-
-
         private Dictionary<string, Type> _definedMembers = new Dictionary<string, Type>();
+        private bool? _propertiesAreDescribed;
+
+        public string GetDynamicTypeName() => $"{DefaultTypeNamePrefix}_{string.Join(";", _definedMembers.Select(e => $"{e.Key}_{e.Value.Name}")).Hash()}";
+        public static AnonymousProxyTypeBuilder GetBuilder() => new AnonymousProxyTypeBuilder();
 
         public void DefineField(string name, Type type)
         {
             _definedMembers[name] = type;
         }
 
-        public Type CreateType()
+        public Type CreateType(IEnumerable<IPropertyDescriber<AnonymousProxyTypeBuilder>> propertyDescribers)
         {
-            var key = GetName();
+            if (_propertiesAreDescribed == null || _propertiesAreDescribed == false)
+            {
+                foreach (var describer in propertyDescribers)
+                    describer.Describe(this);
+
+                _propertiesAreDescribed = true;
+            }
+
+            var key = GetDynamicTypeName();
+
             if (!_typeCache.ContainsKey(key))
             {
                 var typeBuilder = GetTypeBuilder(key);
