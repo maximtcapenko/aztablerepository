@@ -17,6 +17,7 @@
         private readonly List<IPropertyDescriber<AnonymousProxyTypeBuilder>> _propertyDescribers = new List<IPropertyDescriber<AnonymousProxyTypeBuilder>>();
         private readonly AnonymousProxyTypeBuilder _typeBuilder;
         private readonly List<bool> _keys = new List<bool>();
+        private bool? _configurationIsValid;
 
         public BaseFlatMappingConfigurator()
         {
@@ -27,18 +28,18 @@
         {
             property.CheckPropertyExpression();
             _propertyDescribers.Add(new ContentPropertyMapper<TEntity, TProperty>(property));
-            
+
             return this;
         }
 
         public IMappingConfigurator<TEntity> Content<TProperty>(Expression<Func<TEntity, TProperty>> property,
             IContentSerializer contentSerializer) where TProperty : class
-            {
-                property.CheckPropertyExpression();
-                _propertyDescribers.Add(new ContentPropertyMapper<TEntity, TProperty>(property, contentSerializer));
+        {
+            property.CheckPropertyExpression();
+            _propertyDescribers.Add(new ContentPropertyMapper<TEntity, TProperty>(property, contentSerializer));
 
-                return this;
-            }
+            return this;
+        }
 
         public IMappingConfigurator<TEntity> PartitionKey<TProperty>(Expression<Func<TEntity, TProperty>> property)
         {
@@ -78,11 +79,15 @@
 
         private void ValidateConfiguration(IEnumerable<IPropertyDescriber<AnonymousProxyTypeBuilder>> builders)
         {
-            var partitionsKeys = builders.Where(e => e.GetType().GetGenericTypeDefinition() == typeof(PartitionKeyPropertyMapper<,>));
-            partitionsKeys.ValidateKeys("partition key");
+            if (_configurationIsValid == null)
+            {
+                var partitionsKeys = builders.Where(e => e.GetType().GetGenericTypeDefinition() == typeof(PartitionKeyPropertyMapper<,>));
+                partitionsKeys.ValidateKeys("partition key");
 
-            var rowKeys = builders.Where(e => e.GetType().GetGenericTypeDefinition() == typeof(RowKeyPropertyMapper<,>));
-            rowKeys.ValidateKeys("row key");
+                var rowKeys = builders.Where(e => e.GetType().GetGenericTypeDefinition() == typeof(RowKeyPropertyMapper<,>));
+                rowKeys.ValidateKeys("row key");
+                _configurationIsValid = true;
+            }
         }
     }
 }

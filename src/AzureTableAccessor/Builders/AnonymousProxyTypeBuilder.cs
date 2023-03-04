@@ -23,13 +23,11 @@ namespace AzureTableAccessor.Builders
                 .DefineDynamicModule(_assemblyName.Name);
         }
 
+        private Dictionary<string, Type> _definedMembers = new Dictionary<string, Type>();
+        private bool? _propertiesAreDescribed;
 
         public string GetDynamicTypeName() => $"{DefaultTypeNamePrefix}_{string.Join(";", _definedMembers.Select(e => $"{e.Key}_{e.Value.Name}")).Hash()}";
-
         public static AnonymousProxyTypeBuilder GetBuilder() => new AnonymousProxyTypeBuilder();
-
-
-        private Dictionary<string, Type> _definedMembers = new Dictionary<string, Type>();
 
         public void DefineField(string name, Type type)
         {
@@ -38,8 +36,13 @@ namespace AzureTableAccessor.Builders
 
         public Type CreateType(IEnumerable<IPropertyDescriber<AnonymousProxyTypeBuilder>> propertyDescribers)
         {
-            foreach (var builder in propertyDescribers)
-                builder.Describe(this);
+            if (_propertiesAreDescribed == null || _propertiesAreDescribed == false)
+            {
+                foreach (var describer in propertyDescribers)
+                    describer.Describe(this);
+
+                _propertiesAreDescribed = true;
+            }
 
             var key = GetDynamicTypeName();
 

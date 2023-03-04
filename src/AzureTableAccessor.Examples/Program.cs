@@ -83,6 +83,13 @@
             Console.WriteLine("-----loaded-----");
             Console.WriteLine(entity);
 
+            entity.ReplyData = "test reply data";
+
+            await repository.UpdateAsync(entity);
+
+            entity.ReplyData = "second test reply data";
+            await repository.UpdateAsync(entity);
+
             entity = await repository.SingleAsync(e => e.Phone.Number == "+(5)621-0843-97");
             Console.WriteLine("---find single--");
             Console.WriteLine(entity);

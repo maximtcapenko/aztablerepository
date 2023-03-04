@@ -208,7 +208,9 @@
                 throw new EntityNotFoundException(partitionKey, rowKey);
             }
 
-            await client.UpdateEntityAsync(entity, entity.ETag);
+            var updated = await client.UpdateEntityAsync(entity, entity.ETag);
+            if (updated.Headers.ETag.HasValue)
+                entity.ETag = updated.Headers.ETag.Value;
         }
 
         private async Task DeleteAsync<T>(string partitionKey, string rowKey, TableClient client) where T : class, ITableEntity, new()
