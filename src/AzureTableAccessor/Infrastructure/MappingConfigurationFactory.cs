@@ -61,14 +61,11 @@
 
             public IMapRegistrator Register<T>(IMappingConfiguration<T> configuration) where T : class
             {
-                _services.AddSingleton<IRepositoryFactory<T>>(provider =>
-                {
-                    var configurator = new BaseFlatMappingConfigurator<T>();
-                    configuration.Configure(configurator);
-
-                    return new DefaultRepositoryFactory<T>(configurator, provider.GetRequiredService<TableServiceClient>());
-                });
-
+                var configurator = new BaseFlatMappingConfigurator<T>();
+                configuration.Configure(configurator);
+                
+                _services.AddSingleton(configurator);
+                _services.AddSingleton<IRepositoryFactory<T>, DefaultRepositoryFactory<T>>();
                 _services.AddScoped(provider => provider.GetRequiredService<IRepositoryFactory<T>>().Create());
 
                 return this;
