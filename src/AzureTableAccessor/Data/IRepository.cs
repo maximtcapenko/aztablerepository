@@ -3,24 +3,25 @@
     using System;
     using System.Collections.Generic;
     using System.Linq.Expressions;
+    using System.Threading;
     using System.Threading.Tasks;
 
     public interface IRepository<TEntity> where TEntity : class
     {
-        Task CreateAsync(TEntity entity);
+        Task CreateAsync(TEntity entity, CancellationToken cancellationToken = default);
 
-        Task UpdateAsync(TEntity entity);
+        Task UpdateAsync(TEntity entity, CancellationToken cancellationToken = default);
 
-        Task DeleteAsync(TEntity entity);
+        Task DeleteAsync(TEntity entity, CancellationToken cancellationToken = default);
 
-        Task<TEntity> LoadAsync(TEntity entity);
+        Task<TEntity> LoadAsync(TEntity entity, CancellationToken cancellationToken = default);
 
-        Task<TEntity> SingleAsync(Expression<Func<TEntity, bool>> predicate);
+        Task<TEntity> SingleAsync(Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken = default);
 
-        Task<IEnumerable<TEntity>> GetCollectionAsync();
+        Task<IEnumerable<TEntity>> GetCollectionAsync(CancellationToken cancellationToken = default);
 
-        Task<IEnumerable<TEntity>> GetCollectionAsync(Expression<Func<TEntity, bool>> predicate);
+        Task<IEnumerable<TEntity>> GetCollectionAsync(Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken = default);
 
-        Task<Page<TEntity>> GetPageAsync(int pageSize = 100, string continuationToken = null);
+        Task<Page<TEntity>> GetPageAsync(int pageSize = 100, string continuationToken = null, CancellationToken cancellationToken = default);
     }
 }

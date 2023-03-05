@@ -57,7 +57,7 @@
 
             await repository.CreateAsync(message);
 
-            var messages = await repository.GetCollectionAsync();
+            var messages = await repository.GetCollectionAsync(e => e.Phone.Number == "+(5)621-0843-97");
             foreach (var msg in messages)
             {
                 Console.WriteLine(msg);
