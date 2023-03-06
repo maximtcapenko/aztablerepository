@@ -10,19 +10,16 @@
     using Data;
     using Infrastructure;
     using Mappers;
+    using System.Text.RegularExpressions;
 
     public class BaseFlatMappingConfigurator<TEntity> : IMappingConfigurator<TEntity>
                 where TEntity : class
     {
         private readonly List<IPropertyDescriber<AnonymousProxyTypeBuilder>> _propertyDescribers = new List<IPropertyDescriber<AnonymousProxyTypeBuilder>>();
-        private readonly AnonymousProxyTypeBuilder _typeBuilder;
+        private readonly AnonymousProxyTypeBuilder _typeBuilder = new AnonymousProxyTypeBuilder();
         private readonly List<bool> _keys = new List<bool>();
         private bool? _configurationIsValid;
-
-        public BaseFlatMappingConfigurator()
-        {
-            _typeBuilder = new AnonymousProxyTypeBuilder();
-        }
+        private readonly DefaultTableNameProvider _tableNameProvider = new DefaultTableNameProvider();
 
         public IMappingConfigurator<TEntity> Content<TProperty>(Expression<Func<TEntity, TProperty>> property) where TProperty : class
         {
@@ -69,12 +66,19 @@
             return this;
         }
 
+        public IMappingConfigurator<TEntity> ToTable(string name)
+        {
+            _tableNameProvider.AddName(name);
+            return this;
+        }
+
         public IRepository<TEntity> GetRepository(TableServiceClient tableService)
         {
             ValidateConfiguration(_propertyDescribers);
             var type = _typeBuilder.CreateType(_propertyDescribers);
 
-            return new TableClientRuntimeProxyRepository<TEntity>(tableService, type, _propertyDescribers.Select(e => e as IPropertyRuntimeMapper<TEntity>));
+            return new TableClientRuntimeProxyRepository<TEntity>(tableService, type,
+                _propertyDescribers.Select(e => e as IPropertyRuntimeMapper<TEntity>), _tableNameProvider);
         }
 
         private void ValidateConfiguration(IEnumerable<IPropertyDescriber<AnonymousProxyTypeBuilder>> builders)
@@ -87,6 +91,32 @@
                 var rowKeys = builders.Where(e => e.GetType().GetGenericTypeDefinition() == typeof(RowKeyPropertyMapper<,>));
                 rowKeys.ValidateKeys("row key");
                 _configurationIsValid = true;
+            }
+        }
+
+        internal class DefaultTableNameProvider : ITableNameProvider
+        {
+            private readonly List<string> _names = new List<string>();
+            private const string _rulePattern = "^[A-Za-z][A-Za-z0-9]{2,62}$";
+
+            public void AddName(string name)
+            {
+                _names.Add(name);
+            }
+
+            public string GetTableName()
+            {
+                if (!_names.Any())
+                {
+                    return typeof(TEntity).Name.ToLower();
+                }
+                var name = string.Join(null, _names);
+                var match = Regex.Match(name, _rulePattern);
+
+                if (!match.Success)
+                    throw new System.ArgumentException($"Table name [{name}] is not valid");
+
+                return name;
             }
         }
     }
