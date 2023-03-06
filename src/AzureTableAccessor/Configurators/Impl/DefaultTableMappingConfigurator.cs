@@ -10,16 +10,15 @@
     using Data;
     using Infrastructure;
     using Mappers;
-    using System.Text.RegularExpressions;
 
-    public class BaseFlatMappingConfigurator<TEntity> : IMappingConfigurator<TEntity>
-                where TEntity : class
+    public class DefaultTableMappingConfigurator<TEntity> : IMappingConfigurator<TEntity>,
+        IRepositoryFactory<TEntity> where TEntity : class
     {
         private readonly List<IPropertyDescriber<AnonymousProxyTypeBuilder>> _propertyDescribers = new List<IPropertyDescriber<AnonymousProxyTypeBuilder>>();
         private readonly AnonymousProxyTypeBuilder _typeBuilder = new AnonymousProxyTypeBuilder();
         private readonly List<bool> _keys = new List<bool>();
         private bool? _configurationIsValid;
-        private readonly DefaultTableNameProvider _tableNameProvider = new DefaultTableNameProvider();
+        private readonly DefaultTableNameProvider<TEntity> _tableNameProvider = new DefaultTableNameProvider<TEntity>();
 
         public IMappingConfigurator<TEntity> Content<TProperty>(Expression<Func<TEntity, TProperty>> property) where TProperty : class
         {
@@ -72,7 +71,7 @@
             return this;
         }
 
-        public IRepository<TEntity> GetRepository(TableServiceClient tableService)
+        public IRepository<TEntity> CreateRepository(TableServiceClient tableService)
         {
             ValidateConfiguration(_propertyDescribers);
             var type = _typeBuilder.CreateType(_propertyDescribers);
@@ -91,32 +90,6 @@
                 var rowKeys = builders.Where(e => e.GetType().GetGenericTypeDefinition() == typeof(RowKeyPropertyMapper<,>));
                 rowKeys.ValidateKeys("row key");
                 _configurationIsValid = true;
-            }
-        }
-
-        internal class DefaultTableNameProvider : ITableNameProvider
-        {
-            private readonly List<string> _names = new List<string>();
-            private const string _rulePattern = "^[A-Za-z][A-Za-z0-9]{2,62}$";
-
-            public void AddName(string name)
-            {
-                _names.Add(name);
-            }
-
-            public string GetTableName()
-            {
-                if (!_names.Any())
-                {
-                    return typeof(TEntity).Name.ToLower();
-                }
-                var name = string.Join(null, _names);
-                var match = Regex.Match(name, _rulePattern);
-
-                if (!match.Success)
-                    throw new System.ArgumentException($"Table name [{name}] is not valid");
-
-                return name;
             }
         }
     }
