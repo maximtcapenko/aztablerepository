@@ -57,7 +57,7 @@
 
             await repository.CreateAsync(message);
 
-            var messages = await repository.GetCollectionAsync(e => e.Phone.Number == "+(5)621-0843-97");
+            var messages = await repository.GetCollectionAsync();
             foreach (var msg in messages)
             {
                 Console.WriteLine(msg);
@@ -181,7 +181,8 @@
     {
         public void Configure(IMappingConfigurator<Message> configurator)
         {
-            configurator.PartitionKey(e => e.ApplicationMessageId)
+            configurator.ToTable("testmessage01")
+                        .PartitionKey(e => e.ApplicationMessageId)
                         .RowKey(e => e.SmsMessageId)
                         .Property(e => e.Phone.Number)
                         .Property(e => e.ReplyData)

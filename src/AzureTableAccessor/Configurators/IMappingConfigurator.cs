@@ -6,6 +6,8 @@
 
     public interface IMappingConfigurator<TEntity> where TEntity : class
     {
+        IMappingConfigurator<TEntity> ToTable(string name);
+        
         IMappingConfigurator<TEntity> PartitionKey<TProperty>(Expression<Func<TEntity, TProperty>> property);
 
         IMappingConfigurator<TEntity> RowKey<TProperty>(Expression<Func<TEntity, TProperty>> property);

@@ -23,7 +23,8 @@ class YourEntityTableMappingConfiguration : IMappingConfiguration<YourEntity>
    - Use methods `PartitionKey` and `RowKey` to configure mapping of required keys
    - Use method  `Property` to configure mapping of searchable property, method supports mapping nested properties
    - Use method  `Content` to configure mapping of non searchable property
- 
+   - Use method  `ToTable` to configure custom table name, by default name of entity used as table name
+
 3. Add the following line to the `Startup`  `Configure` method.
 
 ```c#

@@ -36,11 +36,11 @@
             = new ConcurrentDictionary<string, Func<object, object[], Task>>();
 
         public TableClientRuntimeProxyRepository(TableServiceClient tableService, Type type,
-            IEnumerable<IPropertyRuntimeMapper<TEntity>> mappers)
+            IEnumerable<IPropertyRuntimeMapper<TEntity>> mappers, ITableNameProvider tableNameProvider)
         {
             _mappers = mappers;
             _runtimeType = type;
-            _client = tableService.GetTableClient(typeof(TEntity).Name.ToLower());
+            _client = tableService.GetTableClient(tableNameProvider.GetTableName());
 
             _createMethod = GetType().FindNonPublicGenericMethod(nameof(CreateAsync));
             _updateMethod = GetType().FindNonPublicGenericMethod(nameof(UpdateAsync));
