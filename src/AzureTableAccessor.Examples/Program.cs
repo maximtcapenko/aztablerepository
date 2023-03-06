@@ -2,7 +2,7 @@
 {
     using Configurators;
     using Data;
-    using Infrastructure;
+    using Extensions;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
     using System;
