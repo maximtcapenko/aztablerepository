@@ -15,7 +15,7 @@ namespace AzureTableAccessor.Infrastructure
                     .FirstOrDefault(m => m.GetParameters().Length == paramCount && m.IsGenericMethod && m.Name == name);
 
 
-        internal static void ProcessGenericInterfaceImpls(Type serviceType, Type interfaceType, Action<Type, Type, string> action)
+        internal static void DoWithGenericInterfaceImpls(Type serviceType, Type interfaceType, Action<Type, Type, string> action)
         {
             if (serviceType.GetInterfaces().Any(x => x.IsGenericType && x.GetGenericTypeDefinition() == interfaceType))
             {
@@ -27,5 +27,15 @@ namespace AzureTableAccessor.Infrastructure
                 }
             }
         }
+
+        internal static void DoWithPulicProperties(Type type, Action<PropertyInfo> action)
+        {
+            foreach(var property in type.GetProperties())
+            {
+                action(property);
+            }
+        }
+
+        internal static bool IsPrimitive(Type type) => type.IsPrimitive || type == typeof(string) || type.IsEnum;
     }
 }

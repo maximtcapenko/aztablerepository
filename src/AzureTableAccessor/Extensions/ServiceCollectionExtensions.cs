@@ -76,7 +76,7 @@ namespace AzureTableAccessor.Extensions
                     var method = registrator.GetType().GetMethod(nameof(IMapRegistrator.Register));
                     foreach (var serviceType in assemblies.SelectMany(e => e.GetTypes()))
                     {
-                        ReflectionUtils.ProcessGenericInterfaceImpls(serviceType, typeof(IMappingConfiguration<>), (@interface, implementation, name) =>
+                        ReflectionUtils.DoWithGenericInterfaceImpls(serviceType, typeof(IMappingConfiguration<>), (@interface, implementation, name) =>
                         {
                             var genericMethod = method.MakeGenericMethod(@interface.GetGenericArguments());
                             var instance = Activator.CreateInstance(implementation);
