@@ -14,6 +14,8 @@
 
         IMappingConfigurator<TEntity> Property<TProperty>(Expression<Func<TEntity, TProperty>> property);
 
+        IMappingConfigurator<TEntity> Property<TProperty>(Expression<Func<TEntity, TProperty>> property, string propertyName);
+
         IMappingConfigurator<TEntity> Content<TProperty>(Expression<Func<TEntity, TProperty>> property) where TProperty : class;
         
         IMappingConfigurator<TEntity> Content<TProperty>(Expression<Func<TEntity, TProperty>> property,
