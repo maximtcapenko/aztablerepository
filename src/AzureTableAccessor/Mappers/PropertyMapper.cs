@@ -25,8 +25,13 @@
             _fieldName = GetFiledName(path.Split('.'));
         }
 
+        public PropertyMapper(Expression<Func<TEntity, TProperty>> property, string propertyName)
+        : this(property)
+        {
+            _fieldName = propertyName;
+        }
+
         private string GetFiledName(string[] names) => names.Length > 1 ? string.Join('_', names) : names[0];
         protected override string GetKeyPropertyName() => _fieldName;
-
     }
 }

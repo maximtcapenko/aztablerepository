@@ -55,6 +55,14 @@
             return this;
         }
 
+        public IMappingConfigurator<TEntity> Property<TProperty>(Expression<Func<TEntity, TProperty>> property, string propertyName)
+        {
+            property.CheckPropertyExpression();
+            property.CheckPropertyType();
+            _propertyDescribers.Add(new PropertyMapper<TEntity, TProperty>(property, propertyName));
+            return this;
+        }
+
         public IMappingConfigurator<TEntity> RowKey<TProperty>(Expression<Func<TEntity, TProperty>> property)
         {
             property.CheckPropertyExpression();
