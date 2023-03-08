@@ -1,6 +1,7 @@
 ﻿namespace AzureTableAccessor.Examples
 {
     using Configurators;
+    using Configurators.Extensions;
     using Data;
     using Extensions;
     using Microsoft.Extensions.Configuration;
@@ -184,11 +185,7 @@
             configurator.ToTable("testmessage01")
                         .PartitionKey(e => e.ApplicationMessageId)
                         .RowKey(e => e.SmsMessageId)
-                        .Property(e => e.Phone.Number)
-                        .Property(e => e.ReplyData)
-                        .Property(e => e.ReplyMethodId)
-                        .Property(e => e.ClientBillingId)
-                        .Content(e => e.Request);
+                        .AutoConfigure();
         }
     }
 }

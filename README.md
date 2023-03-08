@@ -15,15 +15,16 @@ class YourEntityTableMappingConfiguration : IMappingConfiguration<YourEntity>
     {
         configurator.PartitionKey(e => e.Id)
                     .RowKey(e => e.RowId)
-                    .Property(e => e.SomeProperty)
+                    .Property(e => e.SomeProperty) // or Property(e => e.SomeProperty, "custom_name") 
                     .Content(e => e.SomeAnotherProperty);
     }
 }
 ```
-   - Use methods `PartitionKey` and `RowKey` to configure mapping of required keys
-   - Use method  `Property` to configure mapping of searchable property, method supports mapping nested properties
+   - Use methods `PartitionKey` and `RowKey` to configure the mapping of the entity's required keys. In Azure Table storage system entities must have partition and row keys to be properly indexed and queried. These methods allow you to define how these keys should be mapped from the entity's properties
+   - Use method  `Property` to configure mapping of searchable properties. It supports mapping nested properties and custom naming, which can be helpful for organizing and querying large datasets.
    - Use method  `Content` to configure mapping of non searchable property
-   - Use method  `ToTable` to configure custom table name, by default name of entity used as table name
+   - Use method  `ToTable` to configure a custom table name for the entity. By default, the name of the entity is used as the table name, but you can use this method to provide a more meaningful or descriptive name
+   - Use method  `AutoConfigure` to auto configuration of properties using convention. It determines whether a property should be configured as a searchable property or a non-searchable property based on its type. If the type is a string or primitive, it should be configured as a searchable property. Otherwise, it should be configured as a non-searchable property.
 
 3. Add the following line to the `Startup`  `Configure` method.
 

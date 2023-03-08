@@ -8,13 +8,14 @@
     using Builders;
     using Data.Impl;
     using Data;
+    using Extensions;
     using Infrastructure;
     using Mappers;
 
     public class DefaultTableMappingConfigurator<TEntity> : IMappingConfigurator<TEntity>,
-        IRepositoryFactory<TEntity> where TEntity : class
+            IRepositoryFactory<TEntity> where TEntity : class
     {
-        private readonly List<IPropertyDescriber<AnonymousProxyTypeBuilder>> _propertyDescribers = new List<IPropertyDescriber<AnonymousProxyTypeBuilder>>();
+        private readonly Dictionary<string, IPropertyDescriber<AnonymousProxyTypeBuilder>> _propertyDescribers = new Dictionary<string, IPropertyDescriber<AnonymousProxyTypeBuilder>>();
         private readonly AnonymousProxyTypeBuilder _typeBuilder = new AnonymousProxyTypeBuilder();
         private readonly List<bool> _keys = new List<bool>();
         private bool? _configurationIsValid;
@@ -22,52 +23,45 @@
 
         public IMappingConfigurator<TEntity> Content<TProperty>(Expression<Func<TEntity, TProperty>> property) where TProperty : class
         {
-            property.CheckPropertyExpression();
-            _propertyDescribers.Add(new ContentPropertyMapper<TEntity, TProperty>(property));
-
+            ValidateAndAddDescriber(property, () => new ContentPropertyMapper<TEntity, TProperty>(property));
             return this;
         }
 
         public IMappingConfigurator<TEntity> Content<TProperty>(Expression<Func<TEntity, TProperty>> property,
             IContentSerializer contentSerializer) where TProperty : class
         {
-            property.CheckPropertyExpression();
-            _propertyDescribers.Add(new ContentPropertyMapper<TEntity, TProperty>(property, contentSerializer));
-
+            ValidateAndAddDescriber(property, () => new ContentPropertyMapper<TEntity, TProperty>(property, contentSerializer));
             return this;
         }
 
         public IMappingConfigurator<TEntity> PartitionKey<TProperty>(Expression<Func<TEntity, TProperty>> property)
         {
-            property.CheckPropertyExpression();
             property.CheckPropertyType();
-            _propertyDescribers.Add(new PartitionKeyPropertyMapper<TEntity, TProperty>(property));
-            _keys.Add(true);
+            ValidateAndAddDescriber(property, () => new PartitionKeyPropertyMapper<TEntity, TProperty>(property));
 
             return this;
         }
 
         public IMappingConfigurator<TEntity> Property<TProperty>(Expression<Func<TEntity, TProperty>> property)
         {
-            property.CheckPropertyExpression();
             property.CheckPropertyType();
-            _propertyDescribers.Add(new PropertyMapper<TEntity, TProperty>(property));
+            ValidateAndAddDescriber(property, () => new PropertyMapper<TEntity, TProperty>(property));
+
             return this;
         }
 
         public IMappingConfigurator<TEntity> Property<TProperty>(Expression<Func<TEntity, TProperty>> property, string propertyName)
         {
-            property.CheckPropertyExpression();
             property.CheckPropertyType();
-            _propertyDescribers.Add(new PropertyMapper<TEntity, TProperty>(property, propertyName));
+            ValidateAndAddDescriber(property, () => new PropertyMapper<TEntity, TProperty>(property, propertyName));
+
             return this;
         }
 
         public IMappingConfigurator<TEntity> RowKey<TProperty>(Expression<Func<TEntity, TProperty>> property)
         {
-            property.CheckPropertyExpression();
             property.CheckPropertyType();
-            _propertyDescribers.Add(new RowKeyPropertyMapper<TEntity, TProperty>(property));
+            ValidateAndAddDescriber(property, () => new RowKeyPropertyMapper<TEntity, TProperty>(property));
             _keys.Add(true);
 
             return this;
@@ -81,11 +75,22 @@
 
         public IRepository<TEntity> CreateRepository(TableServiceClient tableService)
         {
-            ValidateConfiguration(_propertyDescribers);
-            var type = _typeBuilder.CreateType(_propertyDescribers);
+            ValidateConfiguration(_propertyDescribers.Values);
+            var type = _typeBuilder.CreateType(_propertyDescribers.Values);
 
             return new TableClientRuntimeProxyRepository<TEntity>(tableService, type,
-                _propertyDescribers.Select(e => e as IPropertyRuntimeMapper<TEntity>), _tableNameProvider);
+                _propertyDescribers.Values.Select(e => e as IPropertyRuntimeMapper<TEntity>), _tableNameProvider);
+        }
+
+        private void ValidateAndAddDescriber<TProperty>(Expression<Func<TEntity, TProperty>> property,
+            Func<IPropertyDescriber<AnonymousProxyTypeBuilder>> factory)
+        {
+            var key = property.GetMemberPath();
+            if (!_propertyDescribers.ContainsKey(key))
+            {
+                property.CheckPropertyExpression();
+                _propertyDescribers.Add(key, factory());
+            }
         }
 
         private void ValidateConfiguration(IEnumerable<IPropertyDescriber<AnonymousProxyTypeBuilder>> builders)

@@ -1,4 +1,4 @@
-namespace AzureTableAccessor.Configurators
+namespace AzureTableAccessor.Configurators.Extensions
 {
     using System;
     using System.Collections.Generic;
@@ -8,7 +8,7 @@ namespace AzureTableAccessor.Configurators
     using Mappers;
     using Exceptions;
 
-    internal static class Extensions
+    internal static class ValidationExtensions
     {
         internal static void ValidateKeys<T>(this IEnumerable<IPropertyDescriber<T>> keys, string keyType)
         {
