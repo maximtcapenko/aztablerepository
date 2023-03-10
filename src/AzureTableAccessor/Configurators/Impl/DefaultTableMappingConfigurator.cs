@@ -1,19 +1,17 @@
 ﻿namespace AzureTableAccessor.Configurators.Impl
 {
-    using System.Collections.Generic;
-    using System.Linq.Expressions;
-    using System.Linq;
     using System;
-    using Azure.Data.Tables;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Linq.Expressions;
     using Builders;
-    using Data.Impl;
-    using Data;
     using Extensions;
     using Infrastructure;
+    using Infrastructure.Internal;
     using Mappers;
 
-    public class DefaultTableMappingConfigurator<TEntity> : IMappingConfigurator<TEntity>,
-            IRepositoryFactory<TEntity> where TEntity : class
+    internal class DefaultTableMappingConfigurator<TEntity> : IMappingConfigurator<TEntity>,
+            IRuntimeMappingConfigurationProvider<TEntity> where TEntity : class
     {
         private readonly Dictionary<string, IPropertyDescriber<AnonymousProxyTypeBuilder>> _propertyDescribers = new Dictionary<string, IPropertyDescriber<AnonymousProxyTypeBuilder>>();
         private readonly AnonymousProxyTypeBuilder _typeBuilder = new AnonymousProxyTypeBuilder();
@@ -73,13 +71,14 @@
             return this;
         }
 
-        public IRepository<TEntity> CreateRepository(TableServiceClient tableService)
+        public RuntimeMappingConfiguration<TEntity> GetConfiguration()
         {
             ValidateConfiguration(_propertyDescribers.Values);
             var type = _typeBuilder.CreateType(_propertyDescribers.Values);
 
-            return new TableClientRuntimeProxyRepository<TEntity>(tableService, type,
-                _propertyDescribers.Values.Select(e => e as IPropertyRuntimeMapper<TEntity>), _tableNameProvider);
+            return new RuntimeMappingConfiguration<TEntity>(type,
+                _propertyDescribers.Values.Select(e => e as IPropertyRuntimeMapper<TEntity>),
+                 _tableNameProvider);
         }
 
         private void ValidateAndAddDescriber<TProperty>(Expression<Func<TEntity, TProperty>> property,

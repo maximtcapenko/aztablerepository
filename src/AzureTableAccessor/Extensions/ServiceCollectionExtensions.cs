@@ -1,14 +1,15 @@
 namespace AzureTableAccessor.Extensions
 {
+    using System;
     using System.Linq;
     using System.Reflection;
-    using System;
-    using Configurators;
-    using Microsoft.Extensions.DependencyInjection;
-    using Configurators.Impl;
-    using Infrastructure;
-    using Infrastructure.Impl;
     using Azure.Data.Tables;
+    using Configurators;
+    using Configurators.Impl;
+    using Data.Impl;
+    using Infrastructure;
+    using Infrastructure.Internal;
+    using Microsoft.Extensions.DependencyInjection;
 
     public static class ServiceCollectionExtensions
     {
@@ -24,10 +25,24 @@ namespace AzureTableAccessor.Extensions
             IMapRegistrator Register<T>(IMappingConfiguration<T> configuration) where T : class;
         }
 
+        public interface IProjectionRegistrator
+        {
+            IProjectionRegistrator Register<TEntity, TProjection>(IProjectionConfiguration<TEntity, TProjection> configuration)
+             where TEntity : class
+             where TProjection : class;
+
+        }
+
         public interface IMappingRegistration
         {
-            IServiceCollection ConfigureMap(Action<IMapRegistrator> configurator);
-            IServiceCollection ConfigureMap(params Assembly[] assemblies);
+            IProjectionRegistration ConfigureMap(Action<IMapRegistrator> configurator);
+            IProjectionRegistration ConfigureMap(params Assembly[] assemblies);
+        }
+
+        public interface IProjectionRegistration
+        {
+            IServiceCollection ConfigureProjections(Action<IProjectionRegistrator> configurator);
+            IServiceCollection ConfigureProjections(params Assembly[] assemblies);
         }
 
         internal class InternalMapRegistrator : IMapRegistrator
@@ -44,11 +59,64 @@ namespace AzureTableAccessor.Extensions
                 var configurator = new DefaultTableMappingConfigurator<T>();
                 configuration.Configure(configurator);
 
-                _services.AddSingleton<IRepositoryFactory<T>>(configurator);
-                _services.AddSingleton<IRepositoryProvider<T>, DefaultTableRepositoryProvider<T>>();
-                _services.AddScoped(provider => provider.GetRequiredService<IRepositoryProvider<T>>().GetRepository());
+                _services.AddSingleton<IRuntimeMappingConfigurationProvider<T>>(configurator);
+                _services.AddSingleton<IRepositoryFactory, DefaultTableRepositoryFactory>();
+                _services.AddScoped(provider => provider.GetRequiredService<IRepositoryFactory>().CreateRepository<T>());
 
                 return this;
+            }
+        }
+
+        internal class InternalProjectionRegistrator : IProjectionRegistrator
+        {
+            private readonly IServiceCollection _services;
+
+            public InternalProjectionRegistrator(IServiceCollection services)
+            {
+                _services = services;
+            }
+
+            public IProjectionRegistrator Register<TEntity, TProjection>(IProjectionConfiguration<TEntity, TProjection> configuration)
+                where TEntity : class
+                where TProjection : class
+            {
+
+                return this;
+            }
+        }
+
+        internal class InternalProjectionRegistration : IProjectionRegistration
+        {
+            private readonly IServiceCollection _services;
+
+            public InternalProjectionRegistration(IServiceCollection services)
+            {
+                _services = services;
+            }
+
+            public IServiceCollection ConfigureProjections(Action<IProjectionRegistrator> configurator)
+            {
+                var registrator = new InternalProjectionRegistrator(_services);
+                configurator(registrator);
+
+                return _services;
+            }
+
+            public IServiceCollection ConfigureProjections(params Assembly[] assemblies)
+            {
+                return ConfigureProjections(registrator =>
+                {
+                    var method = registrator.GetType().GetMethod(nameof(IProjectionRegistrator.Register));
+                    foreach (var serviceType in assemblies.SelectMany(e => e.GetTypes()))
+                    {
+                        ReflectionUtils.DoWithGenericInterfaceImpls(serviceType, typeof(IProjectionConfiguration<,>), (@interface, implementation, name) =>
+                        {
+                            var genericMethod = method.MakeGenericMethod(@interface.GetGenericArguments());
+                            var instance = Activator.CreateInstance(implementation);
+                            genericMethod.Invoke(registrator, new object[] { instance });
+                        });
+                    }
+                });
             }
         }
 
@@ -61,17 +129,17 @@ namespace AzureTableAccessor.Extensions
                 _services = services;
             }
 
-            public IServiceCollection ConfigureMap(Action<IMapRegistrator> configuration)
+            public IProjectionRegistration ConfigureMap(Action<IMapRegistrator> configuration)
             {
                 var registrator = new InternalMapRegistrator(_services);
                 configuration(registrator);
 
-                return _services;
+                return new InternalProjectionRegistration(_services);
             }
 
-            public IServiceCollection ConfigureMap(params Assembly[] assemblies)
+            public IProjectionRegistration ConfigureMap(params Assembly[] assemblies)
             {
-                ConfigureMap(registrator =>
+                return ConfigureMap(registrator =>
                 {
                     var method = registrator.GetType().GetMethod(nameof(IMapRegistrator.Register));
                     foreach (var serviceType in assemblies.SelectMany(e => e.GetTypes()))
@@ -84,8 +152,6 @@ namespace AzureTableAccessor.Extensions
                         });
                     }
                 });
-
-                return _services;
             }
         }
 

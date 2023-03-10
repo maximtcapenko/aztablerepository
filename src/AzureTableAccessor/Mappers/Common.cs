@@ -28,7 +28,6 @@
         PropertyConfigType PropertyConfigType { get; }
         string Name { get; }
         Type Type { get; }
-
         object GetValue(TEntity entity);
     }
 

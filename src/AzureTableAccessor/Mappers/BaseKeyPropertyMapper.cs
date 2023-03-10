@@ -1,13 +1,13 @@
 ﻿namespace AzureTableAccessor.Mappers
 {
-    using System.Collections.Concurrent;
-    using System.Linq.Expressions;
-    using System.Linq;
-    using System.Reflection;
     using System;
+    using System.Collections.Concurrent;
+    using System.Linq;
+    using System.Linq.Expressions;
+    using System.Reflection;
     using Azure.Data.Tables;
     using Builders;
-    using Infrastructure;
+    using Infrastructure.Internal;
 
     internal abstract class BaseKeyPropertyMapper<TEntity, TProperty> : IPropertyRuntimeMapper<TEntity>,
             IPropertyDescriber<AnonymousProxyTypeBuilder>, ITranslateVisitorBuilderVisitor,

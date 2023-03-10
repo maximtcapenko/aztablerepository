@@ -1,21 +1,23 @@
 ﻿namespace AzureTableAccessor.Data.Impl
 {
+    using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
-    using System.Linq.Expressions;
     using System.Linq;
+    using System.Linq.Expressions;
     using System.Reflection;
+    using System.Threading;
     using System.Threading.Tasks;
-    using System;
     using Azure.Data.Tables;
     using Builders;
     using Data;
     using Infrastructure;
+    using Infrastructure.Internal;
     using Mappers;
-    using System.Threading;
+    using ILocalQueryProvider = AzureTableAccessor.Data.IQueryProvider;
 
-    internal class TableClientRuntimeProxyRepository<TEntity> : IRepository<TEntity>
-            where TEntity : class
+    internal class TableClientRuntimeProxyRepository<TEntity> : IRepository<TEntity> 
+        where TEntity : class
     {
         private readonly Type _runtimeType;
         private readonly MethodInfo _createMethod;
@@ -30,8 +32,6 @@
         private readonly TableClient _client;
         private readonly Dictionary<string, object> _internalTableCache = new Dictionary<string, object>();
         private const string _cacheKeyPattern = "{0}-{1}";
-        private readonly static ConcurrentDictionary<Type, Func<object>> _instanceFactoryCache
-             = new ConcurrentDictionary<Type, Func<object>>();
         private readonly static ConcurrentDictionary<string, Func<object, object[], Task>> _methodsCache
             = new ConcurrentDictionary<string, Func<object, object[], Task>>();
 
@@ -54,10 +54,10 @@
 
         public Task CreateAsync(TEntity entity, CancellationToken cancellationToken = default)
         {
-            var mapper = new ToRuntimeTypeMapper(entity, _mappers);
+            var mapper = new ToRuntimeTypeMapper<TEntity>(entity, _mappers);
             var method = CreateExecutedMethod(_createMethod);
 
-            var factory = _instanceFactoryCache.GetOrAdd(_runtimeType,
+            var factory = InstanceFactoryProvider.InstanceFactoryCache.GetOrAdd(_runtimeType,
                 (t) => Expression.Lambda<Func<object>>(Expression.New(t)).Compile());
 
             var instance = factory();
@@ -67,7 +67,7 @@
 
         public Task UpdateAsync(TEntity entity, CancellationToken cancellationToken = default)
         {
-            var mapper = new ToRuntimeTypeMapper(entity, _mappers);
+            var mapper = new ToRuntimeTypeMapper<TEntity>(entity, _mappers);
             var keys = _mappers.GetKeysFromEntity(entity);
             var method = CreateExecutedMethod(_updateMethod);
 
@@ -86,7 +86,7 @@
         {
             var keys = _mappers.GetKeysFromEntity(entity);
             var results = new List<TEntity>();
-            var mapper = new FromRuntimeTypeMapper(results, _mappers);
+            var mapper = new FromRuntimeTypeMapper<TEntity>(results, _mappers);
             var method = CreateExecutedMethod(_loadMethod);
 
             await method(this, new object[] { mapper, keys.partitionKey, keys.rowKey, _client, cancellationToken })
@@ -100,8 +100,8 @@
              CancellationToken cancellationToken = default)
         {
             var results = new List<TEntity>();
-            var mapper = new FromRuntimeTypeMapper(results, _mappers);
-            var query = new RuntimeQueryMapper(predicate, _mappers.Where(e => e is ITranslateVisitorBuilderVisitor)
+            var mapper = new FromRuntimeTypeMapper<TEntity>(results, _mappers);
+            var query = new RuntimeQueryMapper<TEntity>(predicate, _mappers.Where(e => e is ITranslateVisitorBuilderVisitor)
                 .Select(e => e as ITranslateVisitorBuilderVisitor).ToList());
             var method = CreateExecutedMethod(_querySingleMethod);
 
@@ -115,8 +115,8 @@
              CancellationToken cancellationToken = default)
         {
             var results = new List<TEntity>();
-            var mapper = new FromRuntimeTypeMapper(results, _mappers);
-            var query = new RuntimeQueryMapper(predicate, _mappers.Where(e => e is ITranslateVisitorBuilderVisitor)
+            var mapper = new FromRuntimeTypeMapper<TEntity>(results, _mappers);
+            var query = new RuntimeQueryMapper<TEntity>(predicate, _mappers.Where(e => e is ITranslateVisitorBuilderVisitor)
                 .Select(e => e as ITranslateVisitorBuilderVisitor).ToList());
             var method = CreateExecutedMethod(_queryMethod);
 
@@ -129,7 +129,7 @@
         public async Task<IEnumerable<TEntity>> GetCollectionAsync(CancellationToken cancellationToken = default)
         {
             var results = new List<TEntity>();
-            var mapper = new FromRuntimeTypeMapper(results, _mappers);
+            var mapper = new FromRuntimeTypeMapper<TEntity>(results, _mappers);
             var method = CreateExecutedMethod(_queryAllMethod);
 
             await method(this, new object[] { mapper, _client, cancellationToken })
@@ -142,7 +142,7 @@
              CancellationToken cancellationToken = default)
         {
             var results = new List<TEntity>();
-            var mapper = new FromRuntimeTypeMapper(results, _mappers);
+            var mapper = new FromRuntimeTypeMapper<TEntity>(results, _mappers);
             var genericMethod = _getPageMethod.MakeGenericMethod(_runtimeType);
             var tokens = new List<string>();
             var method = CreateExecutedMethod(_getPageMethod);
@@ -153,7 +153,7 @@
             return new Page<TEntity>(results, tokens.FirstOrDefault(), pageSize);
         }
 
-        private Func<object, object[], Task> CreateExecutedMethod(MethodInfo methodInfo) 
+        private Func<object, object[], Task> CreateExecutedMethod(MethodInfo methodInfo)
             => _methodsCache.GetOrAdd($"{methodInfo.Name}-{(_runtimeType.Name)}-{methodInfo.GetParameters().Count()}",
              key =>
             {
@@ -287,7 +287,7 @@
                 tokens.Add(page.ContinuationToken);
         }
 
-        private async Task GetCollectionAsync<T>(IQueryProvider query, IMapper mapper, TableClient client,
+        private async Task GetCollectionAsync<T>(ILocalQueryProvider query, IMapper mapper, TableClient client,
              CancellationToken cancellationToken) where T : class, ITableEntity, new()
         {
             var pages = client.QueryAsync(query.Query<T>(), cancellationToken: cancellationToken).AsPages();
@@ -302,7 +302,7 @@
             }
         }
 
-        private async Task SingleAsync<T>(IQueryProvider query, IMapper mapper, TableClient client,
+        private async Task SingleAsync<T>(ILocalQueryProvider query, IMapper mapper, TableClient client,
              CancellationToken cancellationToken) where T : class, ITableEntity, new()
         {
             var pages = client.QueryAsync(query.Query<T>(), cancellationToken: cancellationToken).AsPages(pageSizeHint: 1);
@@ -317,89 +317,5 @@
             }
         }
         #endregion
-
-        internal interface IQueryProvider
-        {
-            Expression<Func<T, bool>> Query<T>() where T : class, ITableEntity, new();
-        }
-
-        internal interface IMapper
-        {
-            void Map<T>(T obj) where T : class, ITableEntity, new();
-        }
-
-        internal class RuntimeQueryMapper : IQueryProvider
-        {
-            private readonly Expression<Func<TEntity, bool>> _predicate;
-            private readonly IEnumerable<ITranslateVisitorBuilderVisitor> _builderVisitors;
-
-            public RuntimeQueryMapper(Expression<Func<TEntity, bool>> predicate,
-                IEnumerable<ITranslateVisitorBuilderVisitor> builderVisitors)
-            {
-                _builderVisitors = builderVisitors;
-                _predicate = predicate;
-            }
-
-            public Expression<Func<T, bool>> Query<T>() where T : class, ITableEntity, new()
-            {
-                var builder = new TranslateVisitorBuilder<T>();
-                foreach (var visitor in _builderVisitors) visitor.Visit(builder);
-
-                var translator = builder.Build();
-                translator.Visit(_predicate);
-                var translation = translator.GetTranslatedExpression();
-
-                //build lambda
-                var predicate = Expression.Lambda<Func<T, bool>>(translation, builder.ParameterExpression);
-                return predicate;
-            }
-
-        }
-
-        internal class FromRuntimeTypeMapper : IMapper
-        {
-            private readonly IEnumerable<IPropertyRuntimeMapper<TEntity>> _mappers;
-
-            private readonly List<TEntity> _entities;
-
-            public FromRuntimeTypeMapper(List<TEntity> entities,
-                IEnumerable<IPropertyRuntimeMapper<TEntity>> mappers)
-            {
-                _entities = entities;
-                _mappers = mappers;
-            }
-
-            public void Map<T>(T obj) where T : class, ITableEntity, new()
-            {
-                var factory = _instanceFactoryCache.GetOrAdd(typeof(TEntity),
-                (type) => Expression.Lambda<Func<object>>(Expression.New(type)).Compile());
-
-                var entity = factory() as TEntity;
-
-                _entities.Add(entity);
-
-                foreach (var mapper in _mappers)
-                {
-                    mapper.Map(obj, entity);
-                }
-            }
-        }
-
-        internal class ToRuntimeTypeMapper : IMapper
-        {
-            private readonly IEnumerable<IPropertyRuntimeMapper<TEntity>> _mappers;
-            private readonly TEntity _entity;
-
-            public ToRuntimeTypeMapper(TEntity entity, IEnumerable<IPropertyRuntimeMapper<TEntity>> mappers)
-            {
-                _entity = entity;
-                _mappers = mappers;
-            }
-
-            public void Map<T>(T obj) where T : class, ITableEntity, new()
-            {
-                foreach (var mapper in _mappers) mapper.Map(_entity, obj);
-            }
-        }
     }
 }

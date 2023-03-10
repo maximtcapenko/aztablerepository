@@ -3,7 +3,7 @@ namespace AzureTableAccessor.Configurators.Extensions
     using System;
     using System.Linq.Expressions;
     using System.Reflection;
-    using Infrastructure;
+    using Infrastructure.Internal;
 
     public static class ConfigurationExtensions
     {

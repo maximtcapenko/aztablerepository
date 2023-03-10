@@ -25,7 +25,8 @@
                 options.StorageUri = config["StorageUri"];
                 options.StorageAccountKey = config["StorageAccountKey"];
                 options.AccountName = config["AccountName"];
-            }).ConfigureMap(typeof(Program).Assembly);
+            }).ConfigureMap(typeof(Program).Assembly)
+              .ConfigureProjections(typeof(Program).Assembly);
 
 
             var provider = services.BuildServiceProvider();
@@ -151,6 +152,11 @@
         public string SmsId { get; set; }
     }
 
+    public class PhoneOnly
+    {
+        public string Number { get; set; }
+    }
+
     public class Message
     {
         public Phone Phone { get; set; }
@@ -188,5 +194,12 @@
                         .AutoConfigure();
         }
     }
-}
 
+    class MessageProjectionConfiguration : IProjectionConfiguration<Message, PhoneOnly>
+    {
+        public void Configure(IProjectionConfigurator<Message, PhoneOnly> configurator)
+        {
+            configurator.Property(e => e.Phone.Number, p => p.Number);
+        }
+    }
+}

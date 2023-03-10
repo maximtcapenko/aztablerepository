@@ -1,13 +1,14 @@
 ﻿namespace AzureTableAccessor.Mappers
 {
-    using System.Collections.Concurrent;
-    using System.Linq.Expressions;
-    using System.Linq;
-    using System.Text.Json;
     using System;
+    using System.Collections.Concurrent;
+    using System.Linq;
+    using System.Linq.Expressions;
+    using System.Text.Json;
     using Azure.Data.Tables;
     using Builders;
     using Infrastructure;
+    using Infrastructure.Internal;
 
     internal class ContentPropertyMapper<TEntity, TProperty> :
             IPropertyRuntimeMapper<TEntity>,
@@ -74,7 +75,7 @@
         {
             if (from == null) throw new ArgumentNullException(nameof(from));
             if (to == null) throw new ArgumentNullException(nameof(to));
-            
+
             var mapper = _mappersCache.GetOrAdd(GetKeyName<T, TEntity>(_fieldName), (s) =>
             {
                 //build delegate for mapping

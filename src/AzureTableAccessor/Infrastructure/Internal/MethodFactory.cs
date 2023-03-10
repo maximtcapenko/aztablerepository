@@ -1,4 +1,4 @@
-namespace AzureTableAccessor.Infrastructure
+namespace AzureTableAccessor.Infrastructure.Internal
 {
     using System;
     using System.Collections.Generic;
