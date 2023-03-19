@@ -33,6 +33,10 @@
             using var scope = provider.CreateScope();
             var repository = scope.ServiceProvider.GetRequiredService<IRepository<Message>>();
 
+            var projectionRepo = scope.ServiceProvider.GetRequiredService<IRepository<Message, PhoneOnly>>();
+            var projections = await projectionRepo.GetCollectionAsync();
+
+
             var randomizer = new Random();
             var range = Enumerable.Range(0, 10);
 
@@ -92,7 +96,7 @@
             entity.ReplyData = "second test reply data";
             await repository.UpdateAsync(entity);
 
-            entity = await repository.SingleAsync(e => e.Phone.Number == "+(5)621-0843-97");
+            entity = await repository.SingleAsync(e => e.Originator == "test" && e.ClientBillingId == "test");
             Console.WriteLine("---find single--");
             Console.WriteLine(entity);
 

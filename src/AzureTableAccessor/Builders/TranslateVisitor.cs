@@ -21,7 +21,7 @@
 
         protected override Expression VisitBinary(BinaryExpression node)
         {
-            var dict = new Dictionary<ExpressionType, Func<Expression, Expression, Expression>>
+            var operations = new Dictionary<ExpressionType, Func<Expression, Expression, Expression>>
             {
                 [ExpressionType.Equal] = Expression.Equal,
                 [ExpressionType.NotEqual] = Expression.NotEqual,
@@ -31,13 +31,13 @@
                 [ExpressionType.LessThanOrEqual] = Expression.LessThanOrEqual,
             };
 
-            var gdict = new Dictionary<ExpressionType, Func<Expression, Expression, Expression>>
+            var groups = new Dictionary<ExpressionType, Func<Expression, Expression, Expression>>
             {
                 [ExpressionType.AndAlso] = Expression.AndAlso,
                 [ExpressionType.OrElse] = Expression.OrElse
             };
 
-            if (dict.TryGetValue(node.NodeType, out var func))
+            if (operations.TryGetValue(node.NodeType, out var operation))
             {
                 if (_visitedEqNeqGtLtNodes.ContainsKey(node)) goto exit;
 
@@ -57,41 +57,45 @@
 
                 var value = valueVisitor.Value;
 
-                _visitedEqNeqGtLtNodes[node] = func(member, value);
-                if (_transaltedExpression == null)
-                    _transaltedExpression = _visitedEqNeqGtLtNodes[node];
-            }
-
-
-            void processGroup(BinaryExpression binary, Func<Expression, Expression, Expression> func)
-            {
-                base.Visit(node.Left);
-                base.Visit(node.Right);
-
-                var visitedInedx = _visitedEqNeqGtLtNodes.Count - 1;
-                var first = _visitedEqNeqGtLtNodes.ElementAt(visitedInedx);
-                var second = _visitedEqNeqGtLtNodes.ElementAt(visitedInedx - 1);
-
-                if (_transaltedExpression == null && visitedInedx >= 0)
+                if (member != null)
                 {
-                    _transaltedExpression = func(first.Value, second.Value);
-                    _visitedOrAndNodes.Add(first.Key);
-                    _visitedOrAndNodes.Add(second.Key);
-                }
-                else if (visitedInedx >= 0)
-                {
-                    if (!_visitedOrAndNodes.Contains(first.Key))
-                    {
-                        _transaltedExpression = func(_transaltedExpression, first.Value);
-                        _visitedOrAndNodes.Add(first.Key);
-                    }
+                    _visitedEqNeqGtLtNodes[node] = operation(member, value);
+
+                    if (_transaltedExpression == null)
+                        _transaltedExpression = _visitedEqNeqGtLtNodes[node];
                 }
             }
 
-            if (gdict.TryGetValue(node.NodeType, out var gfunc)) processGroup(node, gfunc);
+            if (groups.TryGetValue(node.NodeType, out var group))
+                HandleGroup(node, group);
 
             exit:
             return base.VisitBinary(node);
+        }
+
+        private void HandleGroup(BinaryExpression node, Func<Expression, Expression, Expression> group)
+        {
+            base.Visit(node.Left);
+            base.Visit(node.Right);
+
+            var visitedInedx = _visitedEqNeqGtLtNodes.Count - 1;
+            var first = _visitedEqNeqGtLtNodes.ElementAt(visitedInedx);
+            var second = _visitedEqNeqGtLtNodes.ElementAt(visitedInedx - 1);
+
+            if (_transaltedExpression == null && visitedInedx >= 0)
+            {
+                _transaltedExpression = group(first.Value, second.Value);
+                _visitedOrAndNodes.Add(first.Key);
+                _visitedOrAndNodes.Add(second.Key);
+            }
+            else if (visitedInedx >= 0)
+            {
+                if (!_visitedOrAndNodes.Contains(first.Key))
+                {
+                    _transaltedExpression = group(_transaltedExpression, first.Value);
+                    _visitedOrAndNodes.Add(first.Key);
+                }
+            }
         }
     }
 }

@@ -20,4 +20,23 @@ namespace AzureTableAccessor.Infrastructure.Internal
 
         public ITableNameProvider TableNameProvider { get; }
     }
+
+     internal class RuntimeMappingConfiguration<TEntity, T> 
+        where TEntity : class
+        where T : class
+    {
+        public RuntimeMappingConfiguration(Type runtimeType, IEnumerable<IPropertyRuntimeMapper<TEntity,T>> mappers,
+            ITableNameProvider tableNameProvider)
+        {
+            Mappers = mappers;
+            RuntimeType = runtimeType;
+            TableNameProvider = tableNameProvider;
+        }
+
+        public Type RuntimeType { get; }
+
+        public IEnumerable<IPropertyRuntimeMapper<TEntity, T>> Mappers { get; }
+
+        public ITableNameProvider TableNameProvider { get; }
+    }
 }

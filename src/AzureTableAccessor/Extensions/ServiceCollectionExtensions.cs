@@ -4,6 +4,7 @@ namespace AzureTableAccessor.Extensions
     using System.Linq;
     using System.Reflection;
     using Azure.Data.Tables;
+    using AzureTableAccessor.Data;
     using Configurators;
     using Configurators.Impl;
     using Data.Impl;
@@ -80,6 +81,11 @@ namespace AzureTableAccessor.Extensions
                 where TEntity : class
                 where TProjection : class
             {
+                var configurator = new DefaultProjectionMappingConfigurator<TEntity, TProjection>();
+                configuration.Configure(configurator);
+
+                _services.AddSingleton<IRuntimeMappingConfigurationProvider<TEntity, TProjection>>(configurator);
+                _services.AddScoped<IRepository<TEntity,TProjection>>(provider => provider.GetRequiredService<IRepositoryFactory>().CreateRepository<TEntity, TProjection>());
 
                 return this;
             }

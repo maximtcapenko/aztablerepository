@@ -4,6 +4,7 @@
     using System.Linq.Expressions;
     using System;
     using Builders;
+    using Infrastructure.Internal;
 
     internal class PropertyMapper<TEntity, TProperty> : BaseKeyPropertyMapper<TEntity, TProperty>
             where TEntity : class

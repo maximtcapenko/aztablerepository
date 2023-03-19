@@ -4,7 +4,7 @@ namespace AzureTableAccessor.Configurators.Extensions
     using System.Collections.Generic;
     using System.Linq;
     using System.Linq.Expressions;
-    using AzureTableAccessor.Builders;
+    using Infrastructure.Internal;
     using Mappers;
     using Exceptions;
 
@@ -23,23 +23,8 @@ namespace AzureTableAccessor.Configurators.Extensions
         {
             var type = typeof(TProperty);
 
-            if (isClass(type))
+            if (ReflectionUtils.isClass(type))
                 throw new PropertyConfigurationException($"Property [{property.GetMemberPath()}] must be a string or primitive type");
-
-            bool isClass(Type type)
-            {
-                if (type.IsGenericType)
-                {
-                    if (type.GetGenericTypeDefinition() == typeof(Nullable<>))
-                    {
-                        return type.GenericTypeArguments.First().IsClass;
-                    }
-                    return true;
-                }
-                else if (type == (typeof(string))) return false;
-                else
-                    return type.IsClass;
-            }
         }
 
         internal static void CheckPropertyExpression<TEntity, TProperty>(this Expression<Func<TEntity, TProperty>> property)

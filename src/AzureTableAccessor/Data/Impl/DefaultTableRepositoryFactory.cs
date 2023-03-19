@@ -33,11 +33,13 @@
         {
             var tableServiceClient = _serviceProvider.GetRequiredService<TableServiceClient>();
             var runtimeMappingConfigurationProvider = _serviceProvider.GetRequiredService<IRuntimeMappingConfigurationProvider<TEntity>>();
+            var projectionConfigurationProvider = _serviceProvider.GetRequiredService<IRuntimeMappingConfigurationProvider<TEntity, TProjection>>();
 
             var configuration = runtimeMappingConfigurationProvider.GetConfiguration();
+            var projectionConfiguration = projectionConfigurationProvider.GetConfiguration();
 
             return new TableClientRuntimeProxyProjectionRepository<TEntity, TProjection>(tableServiceClient, configuration.RuntimeType,
-               configuration.Mappers, configuration.TableNameProvider);
+               configuration.Mappers, projectionConfiguration.Mappers, configuration.TableNameProvider);
         }
     }
 }

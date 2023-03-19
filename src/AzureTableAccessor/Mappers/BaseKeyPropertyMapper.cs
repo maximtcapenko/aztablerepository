@@ -16,7 +16,11 @@
     {
         private readonly MemberExpression _memberExpression;
         private readonly Expression<Func<TEntity, TProperty>> _property;
-        private readonly InternalPropertyConfiguration _configuration;
+        private readonly string _fieldName;
+        private readonly Func<TEntity, TProperty> _getter;
+        private readonly Action<TEntity, TProperty> _setter;
+        private readonly PropertyConfigType _configType;
+
         private static ConcurrentDictionary<string, IMapperDelegate> _mappersCache
             = new ConcurrentDictionary<string, IMapperDelegate>();
 
@@ -25,14 +29,12 @@
 
         public BaseKeyPropertyMapper(Expression<Func<TEntity, TProperty>> property, PropertyConfigType configType)
         {
+            _fieldName = property.GetMemberPath();
             _memberExpression = property.Body as MemberExpression;
             _property = property;
-            _configuration = new InternalPropertyConfiguration
-            {
-                Name = property.GetMemberPath(),
-                Getter = MethodFactory.CreateGetter(property),
-                PropertyConfigType = configType
-            };
+            _getter = MethodFactory.CreateGetter(_property);
+            _setter = MethodFactory.CreateSetter(_property);
+            _configType = configType;
         }
 
         public void Describe(AnonymousProxyTypeBuilder builder)
@@ -41,7 +43,7 @@
             builder.DefineField(GetKeyPropertyName(), propertyInfo.PropertyType);
         }
 
-        public void Map<T>(TEntity from, T to) where T : class, ITableEntity
+        public void Map<T>(TEntity from, T to) where T : class
         {
             if (from == null) throw new ArgumentNullException(nameof(from));
             if (to == null) throw new ArgumentNullException(nameof(to));
@@ -73,13 +75,12 @@
                var targetparam = _property.Parameters.First();
                var fromparam = Expression.Parameter(typeof(T), "e");
                var field = Expression.PropertyOrField(fromparam, GetKeyPropertyName());
-               var getterfunc = MethodFactory.CreateGetter(Expression.Lambda<Func<T, TProperty>>(field, fromparam));
-               var setter = MethodFactory.CreateSetter(_property);
+               var getter = MethodFactory.CreateGetter(Expression.Lambda<Func<T, TProperty>>(field, fromparam));
 
                return new MapperDelegate<T, TEntity>((tfrom, tto) =>
                {
-                   var data = getterfunc(tfrom);
-                   setter(tto, data);
+                   var data = getter(tfrom);
+                   _setter(tto, data);
                });
            });
 
@@ -89,20 +90,15 @@
         public void Visit<T>(TranslateVisitorBuilder<T> visitorBuilder) where T : class, ITableEntity =>
             visitorBuilder.Add(_memberExpression, Expression.PropertyOrField(visitorBuilder.ParameterExpression, GetKeyPropertyName()));
 
-        public IPropertyConfiguration<TEntity> GetPropertyConfiguration() => _configuration;
-
-        class InternalPropertyConfiguration : IPropertyConfiguration<TEntity>
+        public IPropertyConfiguration<TEntity> GetPropertyConfiguration() => new PropertyConfiguration<TEntity, TProperty>
         {
-            internal Func<TEntity, TProperty> Getter { get; set; }
-
-            public PropertyConfigType PropertyConfigType { get; set; }
-
-            public string Name { get; set; }
-
-            public Type Type { get; set; }
-
-            public object GetValue(TEntity entity) => Getter(entity);
-        }
+            BindingName = GetKeyPropertyName(),
+            PropertyName = _fieldName,
+            Getter = _getter,
+            PropertyConfigType = _configType,
+            Type = _memberExpression.Member.GetMemberType(),
+            Validator = (propertyName) => propertyName == _fieldName
+        };
 
         protected abstract string GetKeyPropertyName();
     }

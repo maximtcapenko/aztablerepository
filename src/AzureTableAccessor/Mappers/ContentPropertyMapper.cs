@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Concurrent;
+    using System.Collections.Generic;
     using System.Linq;
     using System.Linq.Expressions;
     using System.Text.Json;
@@ -12,12 +13,14 @@
 
     internal class ContentPropertyMapper<TEntity, TProperty> :
             IPropertyRuntimeMapper<TEntity>,
-            IPropertyDescriber<AnonymousProxyTypeBuilder>
+            IPropertyDescriber<AnonymousProxyTypeBuilder>,
+            IPropertyConfigurationProvider<TEntity>
             where TEntity : class
     {
         private readonly Expression<Func<TEntity, TProperty>> _property;
         private readonly string _fieldName;
         private readonly IContentSerializer _contentSerializer;
+        private readonly IEnumerable<string> _contentPaths;
 
         private static ConcurrentDictionary<string, IMapperDelegate> _mappersCache
                 = new ConcurrentDictionary<string, IMapperDelegate>();
@@ -25,16 +28,19 @@
             => $"{typeof(TFrom).Name}-{typeof(TTo).Name}-{property}";
 
         public ContentPropertyMapper(Expression<Func<TEntity, TProperty>> property)
-        {
-            _property = property;
-            _fieldName = $"Content_{property.GetMemberPath()}";
-            _contentSerializer = new DefaultContentSerializer();
-        }
+            :this(property, new DefaultContentSerializer())
+        { }
+
         public ContentPropertyMapper(Expression<Func<TEntity, TProperty>> property, IContentSerializer contentSerializer)
         {
             _property = property;
             _fieldName = $"Content_{property.GetMemberPath()}";
             _contentSerializer = contentSerializer;
+
+            var root = property.GetMemberPath();
+            var paths = new List<string>() { root };
+            ResolvePropertyPaths(typeof(TProperty), root, paths);
+            _contentPaths = paths;
         }
 
         public void Describe(AnonymousProxyTypeBuilder builder)
@@ -42,7 +48,14 @@
             builder.DefineField(_fieldName, typeof(string));
         }
 
-        public void Map<T>(TEntity from, T to) where T : class, ITableEntity
+        public IPropertyConfiguration<TEntity> GetPropertyConfiguration()
+             => new PropertyConfiguration<TEntity, TProperty>
+             {
+                 BindingName = _fieldName,
+                 Validator = (propertyName) => _contentPaths.Contains(propertyName)
+             };
+
+        public void Map<T>(TEntity from, T to) where T : class
         {
             if (from == null) throw new ArgumentNullException(nameof(from));
             if (to == null) throw new ArgumentNullException(nameof(to));
@@ -102,6 +115,25 @@
             });
 
             (mapper as MapperDelegate<T, TEntity>)?.Map(from, to);
+        }
+
+        private void ResolvePropertyPaths(Type type, string root, List<string> paths)
+        {
+            if (ReflectionUtils.isClass(type))
+            {
+                foreach (var property in type.GetProperties())
+                {
+                    var currentPath = $"{root}.{property.Name}";
+                    if (ReflectionUtils.isClass(property.PropertyType))
+                    {
+                        ResolvePropertyPaths(property.PropertyType, currentPath, paths);
+                    }
+                    else
+                    {
+                        paths.Add(currentPath);
+                    }
+                }
+            }
         }
 
         class DefaultContentSerializer : IContentSerializer

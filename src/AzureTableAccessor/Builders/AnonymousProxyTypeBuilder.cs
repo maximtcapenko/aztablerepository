@@ -8,6 +8,7 @@ namespace AzureTableAccessor.Builders
     using System;
     using Azure.Data.Tables;
     using Mappers;
+    using Infrastructure.Internal;
 
     internal class AnonymousProxyTypeBuilder
     {
