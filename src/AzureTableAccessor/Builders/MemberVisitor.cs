@@ -3,6 +3,8 @@
     using System;
     using System.Linq.Expressions;
 
+    using Helper = Infrastructure.Internal.Extensions;
+    
     internal class MemberVisitor : ExpressionVisitor
     {
         public Expression Value { get; private set; }
@@ -28,14 +30,13 @@
 
         protected override Expression VisitMember(MemberExpression node)
         {
-            if (Helpers.GetMemberPath(node) == Helpers.GetMemberPath(_fromProperty))
+            if (Helper.GetMemberPath(node) == Helper.GetMemberPath(_fromProperty))
             {
-                var property = Expression.PropertyOrField(_parameter, Helpers.GetMemberPath(_toProperty));
+                var property = Expression.PropertyOrField(_parameter, Helper.GetMemberPath(_toProperty));
                 Value = property;
             }
 
             return base.VisitMember(node);
-
         }
     }
 }

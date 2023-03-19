@@ -22,9 +22,8 @@
         where TEntity : class
         where TProjection : class
     {
-        Task<TProjection> SingleAsync(Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken = default);
         Task<IEnumerable<TProjection>> GetCollectionAsync(CancellationToken cancellationToken = default);
         Task<IEnumerable<TProjection>> GetCollectionAsync(Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken = default);
         Task<Page<TProjection>> GetPageAsync(int pageSize = 100, string continuationToken = null, CancellationToken cancellationToken = default);
-    }
+     }
 }

@@ -6,14 +6,27 @@ namespace AzureTableAccessor.Infrastructure.Internal
 
     internal static class ReflectionUtils
     {
+        private static MethodInfo FindNonPublicGenericMethod(Type type, Func<MethodInfo, bool> predicate)
+        {
+            var current = type;
+            do
+            {
+                var method = current.GetMethods(BindingFlags.NonPublic | BindingFlags.Instance)
+                      .FirstOrDefault(m => m.IsGenericMethod && predicate(m));
+                if (method != null)
+                    return method;
+
+                current = current.BaseType;
+            } while (current != null);
+
+            return null;
+        }
+
         internal static MethodInfo FindNonPublicGenericMethod(this Type type, string name)
-            => type.GetMethods(BindingFlags.NonPublic | BindingFlags.Instance)
-                   .FirstOrDefault(m => m.IsGenericMethod && m.Name == name);
+            => FindNonPublicGenericMethod(type, m => m.Name == name);
 
         internal static MethodInfo FindNonPublicGenericMethod(this Type type, string name, int paramCount)
-            => type.GetMethods(BindingFlags.NonPublic | BindingFlags.Instance)
-                    .FirstOrDefault(m => m.GetParameters().Length == paramCount && m.IsGenericMethod && m.Name == name);
-
+            => FindNonPublicGenericMethod(type, m => m.GetParameters().Length == paramCount && m.Name == name);
 
         internal static void DoWithGenericInterfaceImpls(Type serviceType, Type interfaceType, Action<Type, Type, string> action)
         {
@@ -30,12 +43,27 @@ namespace AzureTableAccessor.Infrastructure.Internal
 
         internal static void DoWithPulicProperties(Type type, Action<PropertyInfo> action)
         {
-            foreach(var property in type.GetProperties())
+            foreach (var property in type.GetProperties())
             {
                 action(property);
             }
         }
 
         internal static bool IsPrimitive(Type type) => type.IsPrimitive || type == typeof(string) || type.IsEnum;
+
+        internal static bool isClass(Type type)
+        {
+            if (type.IsGenericType)
+            {
+                if (type.GetGenericTypeDefinition() == typeof(Nullable<>))
+                {
+                    return type.GenericTypeArguments.First().IsClass;
+                }
+                return true;
+            }
+            else if (type == (typeof(string))) return false;
+            else
+                return type.IsClass;
+        }
     }
 }

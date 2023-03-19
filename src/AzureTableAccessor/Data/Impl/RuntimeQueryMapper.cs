@@ -5,8 +5,9 @@ namespace AzureTableAccessor.Data.Impl
     using System.Linq.Expressions;
     using Azure.Data.Tables;
     using Builders;
+    using ILocalQueryProvider = AzureTableAccessor.Data.IQueryProvider;
 
-    internal class RuntimeQueryMapper<TEntity> where TEntity : class
+    internal class RuntimeQueryMapper<TEntity> : ILocalQueryProvider where TEntity : class
     {
         private readonly Expression<Func<TEntity, bool>> _predicate;
         private readonly IEnumerable<ITranslateVisitorBuilderVisitor> _builderVisitors;
@@ -26,6 +27,8 @@ namespace AzureTableAccessor.Data.Impl
             var translator = builder.Build();
             translator.Visit(_predicate);
             var translation = translator.GetTranslatedExpression();
+            if(translation == null)
+                throw new NotSupportedException("Can't build predicate expression");
 
             //build lambda
             var predicate = Expression.Lambda<Func<T, bool>>(translation, builder.ParameterExpression);

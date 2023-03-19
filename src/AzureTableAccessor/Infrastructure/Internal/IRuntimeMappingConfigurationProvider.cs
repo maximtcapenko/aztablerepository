@@ -4,4 +4,11 @@ namespace AzureTableAccessor.Infrastructure.Internal
     {
         RuntimeMappingConfiguration<TEntity> GetConfiguration();
     }
+
+    internal interface IRuntimeMappingConfigurationProvider<TEntity, T> 
+        where TEntity : class
+        where T : class
+    {
+        RuntimeMappingConfiguration<TEntity, T> GetConfiguration();
+    }
 }

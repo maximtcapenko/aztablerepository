@@ -20,7 +20,7 @@ namespace AzureTableAccessor.Data.Impl
             _mappers = mappers;
         }
 
-        public void Map<T>(T obj) where T : class, ITableEntity, new()
+        public void Map<T>(T obj) where T : class
         {
             var factory = InstanceFactoryProvider.InstanceFactoryCache.GetOrAdd(typeof(TEntity),
             (type) => Expression.Lambda<Func<object>>(Expression.New(type)).Compile());
