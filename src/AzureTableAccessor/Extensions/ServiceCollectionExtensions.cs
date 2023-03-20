@@ -36,13 +36,25 @@ namespace AzureTableAccessor.Extensions
 
         public interface IMappingRegistration
         {
+            /// <summary>
+            /// Registers specific configuration
+            /// </summary>
             IProjectionRegistration ConfigureMap(Action<IMapRegistrator> configurator);
+            /// <summary>
+            /// Registers all found configurations in the given assemblies
+            /// </summary>
             IProjectionRegistration ConfigureMap(params Assembly[] assemblies);
         }
 
         public interface IProjectionRegistration
         {
+            /// <summary>
+            /// Registers specific configuration
+            /// </summary>
             IServiceCollection ConfigureProjections(Action<IProjectionRegistrator> configurator);
+            /// <summary>
+            /// Registers all found configurations in the given assemblies
+            /// </summary>
             IServiceCollection ConfigureProjections(params Assembly[] assemblies);
         }
 
@@ -85,7 +97,7 @@ namespace AzureTableAccessor.Extensions
                 configuration.Configure(configurator);
 
                 _services.AddSingleton<IRuntimeMappingConfigurationProvider<TEntity, TProjection>>(configurator);
-                _services.AddScoped<IRepository<TEntity,TProjection>>(provider => provider.GetRequiredService<IRepositoryFactory>().CreateRepository<TEntity, TProjection>());
+                _services.AddScoped<IRepository<TEntity, TProjection>>(provider => provider.GetRequiredService<IRepositoryFactory>().CreateRepository<TEntity, TProjection>());
 
                 return this;
             }

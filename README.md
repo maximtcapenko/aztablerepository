@@ -26,7 +26,18 @@ class YourEntityTableMappingConfiguration : IMappingConfiguration<YourEntity>
    - Use method  `ToTable` to configure a custom table name for the entity. By default, the name of the entity is used as the table name, but you can use this method to provide a more meaningful or descriptive name
    - Use method  `AutoConfigure` to auto configuration of properties using convention. It determines whether a property should be configured as a searchable property or a non-searchable property based on its type. If the type is a string or primitive, it should be configured as a searchable property. Otherwise, it should be configured as a non-searchable property.
 
-3. Add the following line to the `Startup`  `Configure` method.
+3. Create projection mapping configuration
+
+```c#
+class YourProjectionConfiguration : IProjectionConfiguration<YourEntity, Projection>
+{
+    public void Configure(IProjectionConfigurator<YourEntity, Projection> configurator)
+    {
+        configurator.Property(e => e.Entity.Property, p => p.Property);
+    }
+}
+```
+4. Add the following line to the `Startup`  `Configure` method.
 
 ```c#
  services.AddTableClient(options =>
@@ -34,10 +45,11 @@ class YourEntityTableMappingConfiguration : IMappingConfiguration<YourEntity>
     options.StorageUri = "StorageUri";
     options.StorageAccountKey = "StorageAccountKey";
     options.AccountName = "AccountName";
- }).ConfigureMap(configurator 
-      => configurator.Register(new YourEntityTableMappingConfiguration())); // or ConfigureMap(typeof(YourType).Assembly)
+ }).ConfigureMap(typeof(YourType).Assembly)
+   .ConfigureProjections(typeof(YourType).Assembly);
 ```
-4. Inject repository into your service
+
+5. Inject repository into your service
 ```c#
 IRepository<YourEntity> _repository;
 
@@ -49,3 +61,6 @@ var page = await _repository.GetPageAsync(pageSize: 3); //get page
 var entity = await _repository.LoadAsync(entity); //load entity
 var searchResult = _repository.SingleAsync(e => e.SomeProperty == "condition"); //search single using expression
 var searchResults = await _repository.GetCollectionAsync(e => e.SomeProperty == "condition"); //search using expression
+
+IRepository<YourEntity, Projection> _readOnlyRepository;
+IEnumerable<Projection> results = await _readOnlyRepository.GetCollectionAsync(); //fetch all
