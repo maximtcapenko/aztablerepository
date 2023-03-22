@@ -77,7 +77,7 @@
             var type = _typeBuilder.CreateType(_builderVisitors.Values);
 
             return new RuntimeMappingConfiguration<TEntity>(type,
-                _builderVisitors.Values.Select(e => e as IPropertyRuntimeMapper<TEntity>),
+                _builderVisitors.Values.OfType<IPropertyRuntimeMapper<TEntity>>(),
                  _tableNameProvider);
         }
 

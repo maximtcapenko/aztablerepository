@@ -26,6 +26,7 @@ namespace AzureTableAccessor.Data.Impl
 
             var translator = builder.Build();
             translator.Visit(_predicate);
+            
             var translation = translator.GetTranslatedExpression();
             if(translation == null)
                 throw new NotSupportedException("Can't build predicate expression");

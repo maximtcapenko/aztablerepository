@@ -1,7 +1,6 @@
 ﻿namespace AzureTableAccessor.Data.Impl
 {
     using System;
-    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Linq;
     using System.Linq.Expressions;
@@ -78,8 +77,7 @@
         {
             var results = new List<TEntity>();
             var mapper = new FromRuntimeTypeMapper<TEntity>(results, _mappers);
-            var query = new RuntimeQueryMapper<TEntity>(predicate, _mappers.Where(e => e is ITranslateVisitorBuilderVisitor)
-                .Select(e => e as ITranslateVisitorBuilderVisitor).ToList());
+            var query = new RuntimeQueryMapper<TEntity>(predicate, _mappers.OfType<ITranslateVisitorBuilderVisitor>());
 
             var method = CreateMethodGetSingle();
 
@@ -94,8 +92,7 @@
         {
             var results = new List<TEntity>();
             var mapper = new FromRuntimeTypeMapper<TEntity>(results, _mappers);
-            var query = new RuntimeQueryMapper<TEntity>(predicate, _mappers.Where(e => e is ITranslateVisitorBuilderVisitor)
-                .Select(e => e as ITranslateVisitorBuilderVisitor).ToList());
+            var query = new RuntimeQueryMapper<TEntity>(predicate, _mappers.OfType<ITranslateVisitorBuilderVisitor>());
 
             var method = CreateMethodQuery();
 

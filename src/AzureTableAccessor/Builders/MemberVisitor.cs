@@ -3,7 +3,7 @@
     using System;
     using System.Linq.Expressions;
 
-    using Helper = Infrastructure.Internal.Extensions;
+    using Helpers = Infrastructure.Internal.Extensions;
     
     internal class MemberVisitor : ExpressionVisitor
     {
@@ -30,9 +30,9 @@
 
         protected override Expression VisitMember(MemberExpression node)
         {
-            if (Helper.GetMemberPath(node) == Helper.GetMemberPath(_fromProperty))
+            if (Helpers.GetMemberPath(node) == Helpers.GetMemberPath(_fromProperty))
             {
-                var property = Expression.PropertyOrField(_parameter, Helper.GetMemberPath(_toProperty));
+                var property = Expression.PropertyOrField(_parameter, Helpers.GetMemberPath(_toProperty));
                 Value = property;
             }
 
