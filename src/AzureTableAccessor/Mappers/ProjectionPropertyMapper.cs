@@ -5,8 +5,7 @@ namespace AzureTableAccessor.Mappers
     using System.Linq.Expressions;
     using Infrastructure.Internal;
 
-    internal class ProjectionPropertyMapper<TEntity, TProjection, TProperty>
-        : IPropertyRuntimeMapper<TEntity, TProjection>,
+    internal class ProjectionPropertyMapper<TEntity, TProjection, TProperty> : IPropertyRuntimeMapper<TEntity, TProjection>,
         IPropertyConfigurationProvider<TEntity, TProjection>
         where TEntity : class
         where TProjection : class

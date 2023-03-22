@@ -6,14 +6,12 @@
     using System.Linq;
     using System.Linq.Expressions;
     using System.Text.Json;
-    using Azure.Data.Tables;
     using Builders;
     using Infrastructure;
     using Infrastructure.Internal;
 
-    internal class ContentPropertyMapper<TEntity, TProperty> :
-            IPropertyRuntimeMapper<TEntity>,
-            IPropertyDescriber<AnonymousProxyTypeBuilder>,
+    internal class ContentPropertyMapper<TEntity, TProperty> : IPropertyRuntimeMapper<TEntity>,
+            IBuilderVisitor,
             IPropertyConfigurationProvider<TEntity>
             where TEntity : class
     {
@@ -43,9 +41,9 @@
             _contentPaths = paths;
         }
 
-        public void Describe(AnonymousProxyTypeBuilder builder)
+        public void Visit(AnonymousTypeBuilder builder)
         {
-            builder.DefineField(_fieldName, typeof(string));
+            builder.DefineProperty(_fieldName, typeof(string));
         }
 
         public IPropertyConfiguration<TEntity> GetPropertyConfiguration()

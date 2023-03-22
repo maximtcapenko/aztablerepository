@@ -6,41 +6,44 @@ namespace AzureTableAccessor.Builders
     using System.Reflection.Emit;
     using System.Reflection;
     using System;
-    using Azure.Data.Tables;
-    using Mappers;
     using Infrastructure.Internal;
 
-    internal class AnonymousProxyTypeBuilder
+    internal class AnonymousTypeBuilder
     {
-        private static AssemblyName _assemblyName = new AssemblyName() { Name = "AnonymousProxyTypes" };
+        private static AssemblyName _assemblyName = new AssemblyName() { Name = "AnonymousTypes" };
         private static string DefaultTypeNamePrefix = "Dynamic";
         private static ModuleBuilder _moduleBuilder = null;
         private static ConcurrentDictionary<string, Type> _typeCache = new ConcurrentDictionary<string, Type>();
 
-        static AnonymousProxyTypeBuilder()
+        static AnonymousTypeBuilder()
         {
             _moduleBuilder = AssemblyBuilder
                 .DefineDynamicAssembly(_assemblyName, AssemblyBuilderAccess.Run)
                 .DefineDynamicModule(_assemblyName.Name);
         }
 
-        private Dictionary<string, Type> _definedMembers = new Dictionary<string, Type>();
+        private readonly IEnumerable<Type> _baseInterfaces;
+        private readonly Dictionary<string, Type> _definedMembers = new Dictionary<string, Type>();
         private bool? _propertiesAreDescribed;
 
-        public string GetDynamicTypeName() => $"{DefaultTypeNamePrefix}_{string.Join(";", _definedMembers.Select(e => $"{e.Key}_{e.Value.Name}")).Hash()}";
-        public static AnonymousProxyTypeBuilder GetBuilder() => new AnonymousProxyTypeBuilder();
+        public AnonymousTypeBuilder(params Type[] baseInterfaces)
+        {
+            _baseInterfaces = baseInterfaces;
+        }
 
-        public void DefineField(string name, Type type)
+        public string GetDynamicTypeName() => $"{DefaultTypeNamePrefix}_{string.Join(";", _definedMembers.Select(e => $"{e.Key}_{e.Value.Name}")).Hash()}";
+
+        public void DefineProperty(string name, Type type)
         {
             _definedMembers[name] = type;
         }
 
-        public Type CreateType(IEnumerable<IPropertyDescriber<AnonymousProxyTypeBuilder>> propertyDescribers)
+        public Type CreateType(IEnumerable<IBuilderVisitor> propertyDescribers)
         {
             if (_propertiesAreDescribed == null || _propertiesAreDescribed == false)
             {
                 foreach (var describer in propertyDescribers)
-                    describer.Describe(this);
+                    describer.Visit(this);
 
                 _propertiesAreDescribed = true;
             }
@@ -66,12 +69,18 @@ namespace AzureTableAccessor.Builders
         {
             var typeBuilder = _moduleBuilder.DefineType(typeName, TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.Serializable);
             typeBuilder.DefineDefaultConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName);
-            typeBuilder.AddInterfaceImplementation(typeof(ITableEntity));
-
-            foreach (var property in typeof(ITableEntity).GetProperties())
+            if (_baseInterfaces != null)
             {
-                var visitor = new PropertyTypeBuilderVisitor(property.Name, property.PropertyType);
-                visitor.Visit(typeBuilder);
+                foreach (var @interface in _baseInterfaces)
+                {
+                    typeBuilder.AddInterfaceImplementation(@interface);
+
+                    foreach (var property in @interface.GetProperties())
+                    {
+                        var visitor = new PropertyTypeBuilderVisitor(property.Name, property.PropertyType);
+                        visitor.Visit(typeBuilder);
+                    }
+                }
             }
 
             return typeBuilder;

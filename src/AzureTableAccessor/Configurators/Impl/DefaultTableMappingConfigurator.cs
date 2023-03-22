@@ -13,29 +13,29 @@
     internal class DefaultTableMappingConfigurator<TEntity> : IMappingConfigurator<TEntity>,
             IRuntimeMappingConfigurationProvider<TEntity> where TEntity : class
     {
-        private readonly Dictionary<string, IPropertyDescriber<AnonymousProxyTypeBuilder>> _propertyDescribers = new Dictionary<string, IPropertyDescriber<AnonymousProxyTypeBuilder>>();
-        private readonly AnonymousProxyTypeBuilder _typeBuilder = new AnonymousProxyTypeBuilder();
+        private readonly Dictionary<string, IBuilderVisitor> _builderVisitors = new Dictionary<string, IBuilderVisitor>();
+        private readonly AnonymousTypeBuilder _typeBuilder = TypeBuilderFactory.CreateAzureTableEntity();
         private readonly List<bool> _keys = new List<bool>();
         private bool? _configurationIsValid;
         private readonly DefaultTableNameProvider<TEntity> _tableNameProvider = new DefaultTableNameProvider<TEntity>();
 
         public IMappingConfigurator<TEntity> Content<TProperty>(Expression<Func<TEntity, TProperty>> property) where TProperty : class
         {
-            ValidateAndAddDescriber(property, () => new ContentPropertyMapper<TEntity, TProperty>(property));
+            ValidateAndAddVisitor(property, () => new ContentPropertyMapper<TEntity, TProperty>(property));
             return this;
         }
 
         public IMappingConfigurator<TEntity> Content<TProperty>(Expression<Func<TEntity, TProperty>> property,
             IContentSerializer contentSerializer) where TProperty : class
         {
-            ValidateAndAddDescriber(property, () => new ContentPropertyMapper<TEntity, TProperty>(property, contentSerializer));
+            ValidateAndAddVisitor(property, () => new ContentPropertyMapper<TEntity, TProperty>(property, contentSerializer));
             return this;
         }
 
         public IMappingConfigurator<TEntity> PartitionKey<TProperty>(Expression<Func<TEntity, TProperty>> property)
         {
             property.CheckPropertyType();
-            ValidateAndAddDescriber(property, () => new PartitionKeyPropertyMapper<TEntity, TProperty>(property));
+            ValidateAndAddVisitor(property, () => new PartitionKeyPropertyMapper<TEntity, TProperty>(property));
 
             return this;
         }
@@ -43,7 +43,7 @@
         public IMappingConfigurator<TEntity> Property<TProperty>(Expression<Func<TEntity, TProperty>> property)
         {
             property.CheckPropertyType();
-            ValidateAndAddDescriber(property, () => new PropertyMapper<TEntity, TProperty>(property));
+            ValidateAndAddVisitor(property, () => new PropertyMapper<TEntity, TProperty>(property));
 
             return this;
         }
@@ -51,7 +51,7 @@
         public IMappingConfigurator<TEntity> Property<TProperty>(Expression<Func<TEntity, TProperty>> property, string propertyName)
         {
             property.CheckPropertyType();
-            ValidateAndAddDescriber(property, () => new PropertyMapper<TEntity, TProperty>(property, propertyName));
+            ValidateAndAddVisitor(property, () => new PropertyMapper<TEntity, TProperty>(property, propertyName));
 
             return this;
         }
@@ -59,7 +59,7 @@
         public IMappingConfigurator<TEntity> RowKey<TProperty>(Expression<Func<TEntity, TProperty>> property)
         {
             property.CheckPropertyType();
-            ValidateAndAddDescriber(property, () => new RowKeyPropertyMapper<TEntity, TProperty>(property));
+            ValidateAndAddVisitor(property, () => new RowKeyPropertyMapper<TEntity, TProperty>(property));
             _keys.Add(true);
 
             return this;
@@ -73,26 +73,26 @@
 
         public RuntimeMappingConfiguration<TEntity> GetConfiguration()
         {
-            ValidateConfiguration(_propertyDescribers.Values);
-            var type = _typeBuilder.CreateType(_propertyDescribers.Values);
+            ValidateConfiguration(_builderVisitors.Values);
+            var type = _typeBuilder.CreateType(_builderVisitors.Values);
 
             return new RuntimeMappingConfiguration<TEntity>(type,
-                _propertyDescribers.Values.Select(e => e as IPropertyRuntimeMapper<TEntity>),
+                _builderVisitors.Values.Select(e => e as IPropertyRuntimeMapper<TEntity>),
                  _tableNameProvider);
         }
 
-        private void ValidateAndAddDescriber<TProperty>(Expression<Func<TEntity, TProperty>> property,
-            Func<IPropertyDescriber<AnonymousProxyTypeBuilder>> factory)
+        private void ValidateAndAddVisitor<TProperty>(Expression<Func<TEntity, TProperty>> property,
+            Func<IBuilderVisitor> factory)
         {
             var key = property.GetMemberPath();
-            if (!_propertyDescribers.ContainsKey(key))
+            if (!_builderVisitors.ContainsKey(key))
             {
                 property.CheckPropertyExpression();
-                _propertyDescribers.Add(key, factory());
+                _builderVisitors.Add(key, factory());
             }
         }
 
-        private void ValidateConfiguration(IEnumerable<IPropertyDescriber<AnonymousProxyTypeBuilder>> builders)
+        private void ValidateConfiguration(IEnumerable<IBuilderVisitor> builders)
         {
             if (_configurationIsValid == null)
             {
