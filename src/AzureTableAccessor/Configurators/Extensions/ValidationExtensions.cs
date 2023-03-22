@@ -5,12 +5,12 @@ namespace AzureTableAccessor.Configurators.Extensions
     using System.Linq;
     using System.Linq.Expressions;
     using Infrastructure.Internal;
-    using Mappers;
+    using Builders;
     using Exceptions;
 
     internal static class ValidationExtensions
     {
-        internal static void ValidateKeys<T>(this IEnumerable<IPropertyDescriber<T>> keys, string keyType)
+        internal static void ValidateKeys(this IEnumerable<IBuilderVisitor> keys, string keyType)
         {
             if (keys.Count() == 0)
                 throw new PropertyConfigurationException($"{keyType} is not configured");
