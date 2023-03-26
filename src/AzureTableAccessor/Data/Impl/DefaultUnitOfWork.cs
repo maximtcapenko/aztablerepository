@@ -13,7 +13,6 @@ namespace AzureTableAccessor.Data.Impl
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly TableServiceClient _tableServiceClient;
-        private TableClient _tableClient;
         private readonly List<ITransactionBuilder> _transactionBuilders = new List<ITransactionBuilder>();
 
         public DefaultUnitOfWork(IServiceProvider serviceProvider,
@@ -27,12 +26,12 @@ namespace AzureTableAccessor.Data.Impl
             var runtimeMappingConfigurationProvider = _serviceProvider.GetRequiredService<IRuntimeMappingConfigurationProvider<TEntity>>();
 
             var configuration = runtimeMappingConfigurationProvider.GetConfiguration();
-            _tableClient = _tableServiceClient.GetTableClient(configuration.TableNameProvider.GetTableName());
+            var tableClient = _tableServiceClient.GetTableClient(configuration.TableNameProvider.GetTableName());
 
-            var transactionBuilder = new DefaultTransactionBuilder();
+            var transactionBuilder = new DefaultTransactionBuilder(tableClient);
             _transactionBuilders.Add(transactionBuilder);
 
-            return new TableClientRuntimeProxyRepository<TEntity>(_tableClient, configuration.RuntimeType,
+            return new TableClientRuntimeProxyRepository<TEntity>(tableClient, configuration.RuntimeType,
                configuration.Mappers, transactionBuilder, new InMemoryEntityCache());
         }
 
@@ -42,13 +41,11 @@ namespace AzureTableAccessor.Data.Impl
             {
                 var transaction = transactionBuilder.Build();
 
-                if (_tableClient != null && transaction != null)
+                if (transaction != null)
                 {
-                    await transaction(_tableClient, cancellationToken).ConfigureAwait(false);
+                    await transaction(cancellationToken).ConfigureAwait(false);
                 }
             }
-
-            _transactionBuilders.Clear();
         }
     }
 }

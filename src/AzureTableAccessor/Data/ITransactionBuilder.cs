@@ -9,7 +9,7 @@ namespace AzureTableAccessor.Data
 
     internal interface ITransactionBuilder
     {
-        Func<TableClient, CancellationToken, Task> Build();
+        Func<CancellationToken, Task> Build();
         ITransactionBuilder CreateEntity<TEntity>(TEntity entity, Callback callback = default)
             where TEntity : class, ITableEntity;
         ITransactionBuilder UpdateEntity<TEntity>(TEntity entity, Callback callback = default)

@@ -12,16 +12,23 @@ namespace AzureTableAccessor.Data.Impl
         private readonly List<(TableTransactionAction transation, Callback callback)> _transactionActions 
             = new List<(TableTransactionAction transation, Callback callback)>();
 
-        public Func<TableClient, CancellationToken, Task> Build()
+        private readonly TableClient _tableClient;
+
+        public DefaultTransactionBuilder(TableClient tableClient)
+        {
+            _tableClient = tableClient;
+        }
+
+        public Func<CancellationToken, Task> Build()
         {
             if(!_transactionActions.Any()) return null;
 
             if (_transactionActions.GroupBy(e => e.transation.Entity.PartitionKey).Count() > 1)
-                throw new NotSupportedException("Partition key should be the same for all entities in the transaction");
+                throw new NotSupportedException("The partition key must be the same for all objects in a transaction");
 
-            return async (client, cancellationToken) =>
+            return async (cancellationToken) =>
             {
-                var responses = await client.SubmitTransactionAsync(_transactionActions.Select(e => e.transation), cancellationToken)
+                var responses = await _tableClient.SubmitTransactionAsync(_transactionActions.Select(e => e.transation), cancellationToken)
                                             .ConfigureAwait(false);
 
                 for(int i = 0; i < _transactionActions.Count; i++)
@@ -29,6 +36,8 @@ namespace AzureTableAccessor.Data.Impl
                         var response = responses.Value[i];
                         _transactionActions[i].callback?.Invoke(response);
                 }
+
+                _transactionActions.Clear();
             };
         }
 
