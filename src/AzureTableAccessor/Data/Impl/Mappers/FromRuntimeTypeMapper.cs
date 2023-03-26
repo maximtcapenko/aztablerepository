@@ -1,10 +1,9 @@
-namespace AzureTableAccessor.Data.Impl
+namespace AzureTableAccessor.Data.Impl.Mappers
 {
     using System;
     using System.Collections.Generic;
     using System.Linq.Expressions;
-    using Azure.Data.Tables;
-    using Mappers;
+    using AzureTableAccessor.Mappers;
 
     internal class FromRuntimeTypeMapper<TEntity> : IMapper
         where TEntity : class

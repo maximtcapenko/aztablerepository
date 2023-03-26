@@ -3,6 +3,7 @@
     using System;
     using Azure.Data.Tables;
     using Data;
+    using Impl.Repositories;
     using Infrastructure;
     using Infrastructure.Internal;
     using Microsoft.Extensions.DependencyInjection;
@@ -22,9 +23,10 @@
             var runtimeMappingConfigurationProvider = _serviceProvider.GetRequiredService<IRuntimeMappingConfigurationProvider<TEntity>>();
 
             var configuration = runtimeMappingConfigurationProvider.GetConfiguration();
+            var tablieClient = tableServiceClient.GetTableClient(configuration.TableNameProvider.GetTableName());
 
-            return new TableClientRuntimeProxyRepository<TEntity>(tableServiceClient, configuration.RuntimeType,
-               configuration.Mappers, configuration.TableNameProvider);
+            return new TableClientRuntimeProxyRepository<TEntity>(tablieClient, configuration.RuntimeType,
+                 configuration.Mappers, new InMemoryEntityCache());
         }
 
         public IRepository<TEntity, TProjection> CreateRepository<TEntity, TProjection>()
@@ -39,7 +41,8 @@
             var projectionConfiguration = projectionConfigurationProvider.GetConfiguration();
 
             return new TableClientRuntimeProxyProjectionRepository<TEntity, TProjection>(tableServiceClient, configuration.RuntimeType,
-               configuration.Mappers, projectionConfiguration.Mappers, configuration.TableNameProvider);
+               configuration.Mappers, projectionConfiguration.Mappers,
+               configuration.TableNameProvider, new InMemoryEntityCache());
         }
     }
 }

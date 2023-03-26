@@ -1,4 +1,4 @@
-﻿namespace AzureTableAccessor.Data.Impl
+﻿namespace AzureTableAccessor.Data.Impl.Repositories
 {
     using System;
     using System.Collections.Generic;
@@ -7,10 +7,10 @@
     using System.Threading;
     using System.Threading.Tasks;
     using Azure.Data.Tables;
+    using AzureTableAccessor.Mappers;
     using Builders;
     using Data;
-    using Infrastructure;
-    using Mappers;
+    using Impl.Mappers;
 
     internal class TableClientRuntimeProxyRepository<TEntity> : BaseRuntimeRepository, IRepository<TEntity>
         where TEntity : class
@@ -18,14 +18,24 @@
         private readonly Type _runtimeType;
         private readonly IEnumerable<IPropertyRuntimeMapper<TEntity>> _mappers;
         private readonly TableClient _client;
+        private readonly ITransactionBuilder _transactionBuilder;
 
-        public TableClientRuntimeProxyRepository(TableServiceClient tableService, Type type,
-            IEnumerable<IPropertyRuntimeMapper<TEntity>> mappers, ITableNameProvider tableNameProvider)
-            : base(type)
+        public TableClientRuntimeProxyRepository(TableClient tableClient, Type type,
+            IEnumerable<IPropertyRuntimeMapper<TEntity>> mappers,
+            ITransactionBuilder  transactionBuilder, IEntityCache entityCache)
+            : this(tableClient, type, mappers, entityCache)
+        {
+            _transactionBuilder = transactionBuilder;
+        }
+
+        public TableClientRuntimeProxyRepository(TableClient tableClient, Type type,
+            IEnumerable<IPropertyRuntimeMapper<TEntity>> mappers,
+            IEntityCache entityCache)
+            : base(type, entityCache)
         {
             _mappers = mappers;
             _runtimeType = type;
-            _client = tableService.GetTableClient(tableNameProvider.GetTableName());
+            _client = tableClient;
         }
 
         public Task CreateAsync(TEntity entity, CancellationToken cancellationToken = default)
@@ -38,7 +48,7 @@
 
             var instance = factory();
 
-            return method(this, new object[] {  mapper, instance, _client, cancellationToken });
+            return method(this, new object[] {_transactionBuilder, mapper, instance, _client, cancellationToken });
         }
 
         public Task UpdateAsync(TEntity entity, CancellationToken cancellationToken = default)
@@ -47,7 +57,7 @@
             var keys = _mappers.GetKeysFromEntity(entity);
             var method = CreateMethodUpdate();
 
-            return method(this, new object[] { mapper, keys.partitionKey, keys.rowKey, _client, cancellationToken });
+            return method(this, new object[] {_transactionBuilder, mapper, keys.partitionKey, keys.rowKey, _client, cancellationToken });
         }
 
         public Task DeleteAsync(TEntity entity, CancellationToken cancellationToken = default)
@@ -55,7 +65,7 @@
             var keys = _mappers.GetKeysFromEntity(entity);
             var method = CreateMethodDelete();
 
-            return method(this, new object[] { keys.partitionKey, keys.rowKey, _client, cancellationToken });
+            return method(this, new object[] { _transactionBuilder, keys.partitionKey, keys.rowKey, _client, cancellationToken });
         }
 
         public async Task<TEntity> LoadAsync(TEntity entity, CancellationToken cancellationToken = default)

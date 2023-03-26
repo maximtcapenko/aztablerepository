@@ -1,4 +1,4 @@
-namespace AzureTableAccessor.Data.Impl
+namespace AzureTableAccessor.Data.Impl.Repositories
 {
     using System;
     using System.Collections.Concurrent;
@@ -22,14 +22,14 @@ namespace AzureTableAccessor.Data.Impl
         private readonly MethodInfo _queryAllMethod;
         private readonly MethodInfo _queryMethod;
         private readonly MethodInfo _getPageMethod;
-        private readonly Dictionary<string, object> _internalTableCache = new Dictionary<string, object>();
-        private const string _cacheKeyPattern = "{0}-{1}";
+        private readonly IEntityCache _entityCache;
 
         private readonly static ConcurrentDictionary<string, Func<object, object[], Task>> _methodsCache
             = new ConcurrentDictionary<string, Func<object, object[], Task>>();
 
-        public BaseRuntimeRepository(Type runtimeType)
+        public BaseRuntimeRepository(Type runtimeType, IEntityCache entityCache)
         {
+            _entityCache = entityCache;
             _runtimeType = runtimeType;
             _createMethod = GetType().FindNonPublicGenericMethod(nameof(CreateAsync));
             _updateMethod = GetType().FindNonPublicGenericMethod(nameof(UpdateAsync));
@@ -61,42 +61,75 @@ namespace AzureTableAccessor.Data.Impl
             return MethodFactory.CreateGenericMethod<Task>(genericMethod);
         });
 
-        private async Task CreateAsync<T>(IMapper mapper, T entity, TableClient client,
+        private async Task CreateAsync<T>(ITransactionBuilder transactionBuilder, IMapper mapper, T entity, TableClient client,
                      CancellationToken cancellationToken) where T : class, ITableEntity, new()
         {
             mapper.Map(entity);
 
+            if (transactionBuilder != null)
+            {
+                transactionBuilder.CreateEntity(entity, response =>
+                {
+                    if (response.Headers.ETag.HasValue)
+                        entity.ETag = response.Headers.ETag.Value;
+
+                    entity.Timestamp = response.Headers.Date;
+
+                    _entityCache.Add(entity);
+                });
+
+                return;
+            }
+
             await client.CreateIfNotExistsAsync(cancellationToken)
                 .ConfigureAwait(false);
 
-            await client.AddEntityAsync(entity, cancellationToken)
+            var result = await client.AddEntityAsync(entity, cancellationToken)
                 .ConfigureAwait(false);
+
+            if (result.Headers.ETag.HasValue)
+                entity.ETag = result.Headers.ETag.Value;
+
+            entity.Timestamp = result.Headers.Date;
+
+            _entityCache.Add(entity);
         }
 
-        private async Task UpdateAsync<T>(IMapper mapper, string partitionKey, string rowKey, TableClient client,
+        private async Task UpdateAsync<T>(ITransactionBuilder transactionBuilder, IMapper mapper, string partitionKey, string rowKey, TableClient client,
              CancellationToken cancellationToken) where T : class, ITableEntity, new()
         {
             T entity = null;
             try
             {
-                var key = string.Format(_cacheKeyPattern, partitionKey, rowKey);
-                if (_internalTableCache.TryGetValue(key, out var cache))
-                {
-                    entity = (T)cache;
-                }
-                else
+                entity = _entityCache.Get<T>(partitionKey, rowKey);
+
+                if (entity == null)
                 {
                     var response = await client.GetEntityAsync<T>(partitionKey, rowKey, cancellationToken: cancellationToken)
                         .ConfigureAwait(false);
 
                     entity = response.Value;
                 }
-                if (entity != null)
-                    mapper.Map(entity);
+                mapper.Map(entity);
             }
             catch (Azure.RequestFailedException ex) when (ex.Status == 404)
             {
                 throw new EntityNotFoundException(partitionKey, rowKey);
+            }
+
+            if (transactionBuilder != null)
+            {
+                transactionBuilder.UpdateEntity(entity, response =>
+                {
+                    if (response.Headers.ETag.HasValue)
+                        entity.ETag = response.Headers.ETag.Value;
+
+                    entity.Timestamp = response.Headers.Date;
+
+                    _entityCache.Add(entity);
+                });
+
+                return;
             }
 
             var updated = await client.UpdateEntityAsync(entity, entity.ETag, cancellationToken: cancellationToken)
@@ -104,20 +137,19 @@ namespace AzureTableAccessor.Data.Impl
 
             if (updated.Headers.ETag.HasValue)
                 entity.ETag = updated.Headers.ETag.Value;
+
+            entity.Timestamp = updated.Headers.Date;
+            _entityCache.Add(entity);
         }
 
-        private async Task DeleteAsync<T>(string partitionKey, string rowKey, TableClient client,
+        private async Task DeleteAsync<T>(ITransactionBuilder transactionBuilder, string partitionKey, string rowKey, TableClient client,
              CancellationToken cancellationToken) where T : class, ITableEntity, new()
         {
             T entity = null;
             try
             {
-                var key = string.Format(_cacheKeyPattern, partitionKey, rowKey);
-                if (_internalTableCache.TryGetValue(key, out var cache))
-                {
-                    entity = (T)cache;
-                }
-                else
+                entity = _entityCache.Get<T>(partitionKey, rowKey);
+                if (entity == null)
                 {
                     var response = await client.GetEntityAsync<T>(partitionKey, rowKey, cancellationToken: cancellationToken)
                         .ConfigureAwait(false);
@@ -129,8 +161,20 @@ namespace AzureTableAccessor.Data.Impl
                 throw new EntityNotFoundException(partitionKey, rowKey);
             }
 
+            if(transactionBuilder != null)
+            {
+                transactionBuilder.DeleteEntity(entity, response => 
+                {
+                    _entityCache.Remove(partitionKey, rowKey);
+                });
+                
+                return;
+            }
+
             await client.DeleteEntityAsync(partitionKey, rowKey, entity.ETag, cancellationToken)
                 .ConfigureAwait(false);
+
+            _entityCache.Remove(partitionKey, rowKey);
         }
 
         private async Task LoadAsync<T>(IMapper mapper, string partitionKey, string rowKey, TableClient client,
@@ -144,7 +188,7 @@ namespace AzureTableAccessor.Data.Impl
                 var result = await client.GetEntityAsync<T>(partitionKey, rowKey, cancellationToken: cancellationToken)
                     .ConfigureAwait(false);
 
-                _internalTableCache[string.Format(_cacheKeyPattern, partitionKey, rowKey)] = result.Value;
+                _entityCache.Add(result.Value);
                 mapper.Map(result.Value);
             }
             catch (Azure.RequestFailedException ex) when (ex.Status == 404)

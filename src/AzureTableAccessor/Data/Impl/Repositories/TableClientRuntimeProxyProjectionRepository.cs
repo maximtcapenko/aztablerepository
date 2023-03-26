@@ -1,4 +1,4 @@
-﻿namespace AzureTableAccessor.Data.Impl
+﻿namespace AzureTableAccessor.Data.Impl.Repositories
 {
     using System;
     using System.Collections.Generic;
@@ -7,10 +7,11 @@
     using System.Threading;
     using System.Threading.Tasks;
     using Azure.Data.Tables;
+    using AzureTableAccessor.Mappers;
     using Builders;
     using Data;
     using Infrastructure;
-    using Mappers;
+    using Impl.Mappers;
 
     internal class TableClientRuntimeProxyProjectionRepository<TEntity, TProjection> :
         BaseRuntimeRepository, IRepository<TEntity, TProjection>
@@ -24,8 +25,10 @@
 
         public TableClientRuntimeProxyProjectionRepository(TableServiceClient tableService, Type type,
             IEnumerable<IPropertyRuntimeMapper<TEntity>> mappers,
-            IEnumerable<IPropertyRuntimeMapper<TEntity, TProjection>> pmappers, ITableNameProvider tableNameProvider)
-            : base(type)
+            IEnumerable<IPropertyRuntimeMapper<TEntity, TProjection>> pmappers, 
+            ITableNameProvider tableNameProvider,
+            IEntityCache entityCache)
+            : base(type, entityCache)
         {
             _mappers = mappers;
             _projectionMappers = pmappers;
