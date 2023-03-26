@@ -20,7 +20,7 @@
          : base(property, PropertyConfigType.Property)
         {
             _memberExpression = property.Body as MemberExpression;
-
+    
             var path = property.GetMemberPath();
             _fieldName = GetFiledName(path.Split('.'));
         }

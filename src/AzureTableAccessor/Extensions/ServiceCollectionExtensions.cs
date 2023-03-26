@@ -74,6 +74,8 @@ namespace AzureTableAccessor.Extensions
 
                 _services.AddSingleton<IRuntimeMappingConfigurationProvider<T>>(configurator);
                 _services.AddSingleton<IRepositoryFactory, DefaultTableRepositoryFactory>();
+                _services.AddScoped<IUnitOfWork, DefaultUnitOfWork>();
+                
                 _services.AddScoped(provider => provider.GetRequiredService<IRepositoryFactory>().CreateRepository<T>());
 
                 return this;

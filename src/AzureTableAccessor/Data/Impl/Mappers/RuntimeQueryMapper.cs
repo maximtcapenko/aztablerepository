@@ -1,4 +1,4 @@
-namespace AzureTableAccessor.Data.Impl
+namespace AzureTableAccessor.Data.Impl.Mappers
 {
     using System;
     using System.Collections.Generic;

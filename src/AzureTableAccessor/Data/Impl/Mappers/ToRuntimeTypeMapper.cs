@@ -1,7 +1,7 @@
-namespace AzureTableAccessor.Data.Impl
+namespace AzureTableAccessor.Data.Impl.Mappers
 {
     using System.Collections.Generic;
-    using Mappers;
+    using AzureTableAccessor.Mappers;
 
     internal class ToRuntimeTypeMapper<TEntity> : IMapper where TEntity : class
     {
