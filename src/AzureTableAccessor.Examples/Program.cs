@@ -2,13 +2,12 @@
 {
     using Configurators;
     using Configurators.Extensions;
-    using Data;
     using Extensions;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
-    using System;
-    using System.Collections.Generic;
     using System.Threading.Tasks;
+    using Infrastructure;
+    using Data;
 
     class Program
     {
@@ -31,6 +30,8 @@
 
             var provider = services.BuildServiceProvider();
 
+            var repository = provider.GetRequiredService<IRepository<Message>>();
+
             await BatchExample.Run(provider);
         }
     }
@@ -40,7 +41,7 @@
         public void Configure(IMappingConfigurator<Message> configurator)
         {
             configurator.ToTable("testmessage01")
-                        .PartitionKey(e => e.ApplicationMessageId)
+                        .PartitionKey(e => e.ApplicationMessageId, AutoKeyGenerator.Guid)
                         .RowKey(e => e.SmsMessageId)
                         .AutoConfigure();
         }

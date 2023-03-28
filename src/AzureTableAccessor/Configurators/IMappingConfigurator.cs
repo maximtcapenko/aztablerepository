@@ -15,12 +15,13 @@
         /// Binds the property to table partition key
         /// </summary>
         /// <param name="property">Property expression</param>
-        IMappingConfigurator<TEntity> PartitionKey<TProperty>(Expression<Func<TEntity, TProperty>> property);
+        IMappingConfigurator<TEntity> PartitionKey(Expression<Func<TEntity, string>> property);
+        IMappingConfigurator<TEntity> PartitionKey(Expression<Func<TEntity, string>> property, IAutoKeyGenerator generator);
         /// <summary>
         /// Binds the property to table row key
         /// </summary>
         /// <param name="property">Property expression</param>
-        IMappingConfigurator<TEntity> RowKey<TProperty>(Expression<Func<TEntity, TProperty>> property);
+        IMappingConfigurator<TEntity> RowKey(Expression<Func<TEntity, string>> property);
         /// <summary>
         /// Binds the property to table column with the same name
         /// </summary>

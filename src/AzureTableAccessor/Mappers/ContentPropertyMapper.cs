@@ -63,13 +63,13 @@
                   //build delegate for mapping
                   var getContentFunc = MethodFactory.CreateGetter(_property);
 
-                  var fromparam = Expression.Parameter(typeof(string));
-                  var targetparam = Expression.Parameter(typeof(T), "e");
-                  var field = Expression.PropertyOrField(targetparam, _fieldName);
-                  var expression = Expression.Assign(field, fromparam);
+                  var fromParam = Expression.Parameter(typeof(string));
+                  var targetParam = Expression.Parameter(typeof(T), "e");
+                  var field = Expression.PropertyOrField(targetParam, _fieldName);
+                  var assign = Expression.Assign(field, fromParam);
 
                   //cache for type
-                  var func = Expression.Lambda<Action<string, T>>(expression, fromparam, targetparam).Compile();
+                  var func = Expression.Lambda<Action<string, T>>(assign, fromParam, targetParam).Compile();
 
                   return new MapperDelegate<TEntity, T>((from, to) =>
                   {
@@ -90,16 +90,16 @@
             var mapper = _mappersCache.GetOrAdd(GetKeyName<T, TEntity>(_fieldName), (s) =>
             {
                 //build delegate for mapping
-                var targetparam = _property.Parameters.First();
-                var fromparam = Expression.Parameter(typeof(T));
-                var getter = Expression.PropertyOrField(fromparam, _fieldName);
+                var targetParam = _property.Parameters.First();
+                var fromParam = Expression.Parameter(typeof(T));
+                var getter = Expression.PropertyOrField(fromParam, _fieldName);
                 var toParam = Expression.Parameter(typeof(TProperty));
-                var getContentFunc = MethodFactory.CreateGetter(Expression.Lambda<Func<T, string>>(getter, fromparam));
-                var expression = Expression.Assign(_property.Body, toParam);
+                var getContentFunc = MethodFactory.CreateGetter(Expression.Lambda<Func<T, string>>(getter, fromParam));
+                var assign = Expression.Assign(_property.Body, toParam);
 
                 //cache for type
-                var func = Expression.Lambda<Action<TProperty, TEntity>>(expression,
-                    toParam, targetparam).Compile();
+                var func = Expression.Lambda<Action<TProperty, TEntity>>(assign,
+                    toParam, targetParam).Compile();
 
                 return new MapperDelegate<T, TEntity>((from, to) =>
                 {

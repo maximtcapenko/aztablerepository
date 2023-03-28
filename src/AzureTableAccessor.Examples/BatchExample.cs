@@ -11,8 +11,7 @@ namespace AzureTableAccessor.Examples
             var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
             var repository = unitOfWork.CreateRepository<Message>();
 
-            var partitionKey = Guid.NewGuid().ToString();
-            for(int i = 0; i < 5; i++)
+             for(int i = 0; i < 5; i++)
             {
                 var message = Generator.Generate();
                 await repository.CreateAsync(message);

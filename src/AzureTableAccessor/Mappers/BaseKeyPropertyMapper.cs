@@ -51,12 +51,12 @@
             var mapper = _mappersCache.GetOrAdd(GetKeyName<TEntity, T>(GetKeyPropertyName()), (keyName) =>
              {
                  //build delegate for mapping
-                 var fromparam = _property.Parameters.First();
-                 var targetparam = Expression.Parameter(typeof(T), "e");
-                 var field = Expression.PropertyOrField(targetparam, GetKeyPropertyName());
+                 var fromParam = _property.Parameters.First();
+                 var targetParam = Expression.Parameter(typeof(T), "e");
+                 var field = Expression.PropertyOrField(targetParam, GetKeyPropertyName());
 
-                 var expression = Expression.Assign(field, _memberExpression);
-                 var func = Expression.Lambda<Action<TEntity, T>>(expression, fromparam, targetparam).Compile();
+                 var assign = GetAssignment(field);
+                 var func = Expression.Lambda<Action<TEntity, T>>(assign, fromParam, targetParam).Compile();
 
                  return new MapperDelegate<TEntity, T>(func);
              });
@@ -72,10 +72,10 @@
             var mapper = _mappersCache.GetOrAdd(GetKeyName<T, TEntity>(GetKeyPropertyName()), (keyName) =>
            {
                //build delegate for mapping
-               var targetparam = _property.Parameters.First();
-               var fromparam = Expression.Parameter(typeof(T), "e");
-               var field = Expression.PropertyOrField(fromparam, GetKeyPropertyName());
-               var getter = MethodFactory.CreateGetter(Expression.Lambda<Func<T, TProperty>>(field, fromparam));
+               var targetParam = _property.Parameters.First();
+               var fromParam = Expression.Parameter(typeof(T), "e");
+               var field = Expression.PropertyOrField(fromParam, GetKeyPropertyName());
+               var getter = MethodFactory.CreateGetter(Expression.Lambda<Func<T, TProperty>>(field, fromParam));
 
                return new MapperDelegate<T, TEntity>((tfrom, tto) =>
                {
@@ -101,5 +101,8 @@
         };
 
         protected abstract string GetKeyPropertyName();
+
+        protected virtual Expression GetAssignment(MemberExpression field)
+             => Expression.Assign(field, _memberExpression);
     }
 }

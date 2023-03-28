@@ -7,10 +7,12 @@
     using System.Threading;
     using System.Threading.Tasks;
     using Azure.Data.Tables;
+    using AzureTableAccessor.Infrastructure.Internal;
     using AzureTableAccessor.Mappers;
     using Builders;
     using Data;
     using Impl.Mappers;
+    using Infrastructure;
 
     internal class TableClientRuntimeProxyRepository<TEntity> : BaseRuntimeRepository, IRepository<TEntity>
         where TEntity : class
@@ -19,28 +21,31 @@
         private readonly IEnumerable<IPropertyRuntimeMapper<TEntity>> _mappers;
         private readonly TableClient _client;
         private readonly ITransactionBuilder _transactionBuilder;
+        private readonly IAutoKeyGenerator _autoKeyGenerator;
 
-        public TableClientRuntimeProxyRepository(TableClient tableClient, Type type,
-            IEnumerable<IPropertyRuntimeMapper<TEntity>> mappers,
+        public TableClientRuntimeProxyRepository(TableClient tableClient, 
+            RuntimeMappingConfiguration<TEntity> configuration,
             ITransactionBuilder  transactionBuilder, IEntityCache entityCache)
-            : this(tableClient, type, mappers, entityCache)
+            : this(tableClient, configuration, entityCache)
         {
             _transactionBuilder = transactionBuilder;
         }
 
-        public TableClientRuntimeProxyRepository(TableClient tableClient, Type type,
-            IEnumerable<IPropertyRuntimeMapper<TEntity>> mappers,
+        public TableClientRuntimeProxyRepository(TableClient tableClient,
+            RuntimeMappingConfiguration<TEntity> configuration,
             IEntityCache entityCache)
-            : base(type, entityCache)
+            : base(configuration.RuntimeType, entityCache)
         {
-            _mappers = mappers;
-            _runtimeType = type;
+            _autoKeyGenerator = configuration.AutoKeyGenerator;
             _client = tableClient;
+            _mappers = configuration.Mappers;
+            _runtimeType = configuration.RuntimeType;
         }
 
         public Task CreateAsync(TEntity entity, CancellationToken cancellationToken = default)
         {
-            var mapper = new ToRuntimeTypeMapper<TEntity>(entity, _mappers);
+            var inMapper = new ToRuntimeTypeMapper<TEntity>(entity, _mappers);
+            var outMapper = new FromRuntimeTypeMapper<TEntity>(entity, _mappers);
             var method = CreateMethodCreate();
 
             var factory = InstanceFactoryProvider.InstanceFactoryCache.GetOrAdd(_runtimeType,
@@ -48,7 +53,7 @@
 
             var instance = factory();
 
-            return method(this, new object[] {_transactionBuilder, mapper, instance, _client, cancellationToken });
+            return method(this, new object[] {_autoKeyGenerator, _transactionBuilder, inMapper, outMapper, instance, _client, cancellationToken });
         }
 
         public Task UpdateAsync(TEntity entity, CancellationToken cancellationToken = default)
