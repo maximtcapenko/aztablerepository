@@ -16,6 +16,11 @@
         /// </summary>
         /// <param name="property">Property expression</param>
         IMappingConfigurator<TEntity> PartitionKey(Expression<Func<TEntity, string>> property);
+        /// <summary>
+        /// Binds the property to table partition key and configure auto key generation
+        /// </summary>
+        /// <param name="property">Property expression</param>
+        /// <param name="generator">Auto key generator</param>
         IMappingConfigurator<TEntity> PartitionKey(Expression<Func<TEntity, string>> property, IAutoKeyGenerator generator);
         /// <summary>
         /// Binds the property to table row key

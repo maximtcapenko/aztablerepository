@@ -13,7 +13,7 @@ class YourEntityTableMappingConfiguration : IMappingConfiguration<YourEntity>
 {
     public void Configure(IMappingConfigurator<YourEntity> configurator)
     {
-        configurator.PartitionKey(e => e.Id)
+        configurator.PartitionKey(e => e.Id, AutoKeyGenerator.Guid)
                     .RowKey(e => e.RowId)
                     .Property(e => e.SomeProperty) // or Property(e => e.SomeProperty, "custom_name") 
                     .Content(e => e.SomeAnotherProperty);
@@ -64,3 +64,14 @@ var searchResults = await _repository.GetCollectionAsync(e => e.SomeProperty == 
 
 IRepository<YourEntity, Projection> _readOnlyRepository;
 IEnumerable<Projection> results = await _readOnlyRepository.GetCollectionAsync(); //fetch all
+```
+6. Use transactions
+```c#
+IUnitOfWork _unitOfWork;
+
+var repository = unitOfWork.CreateRepository<YourEntity>();
+
+await repository.CreateAsync(entity);
+await _repository.UpdateAsync(entity);
+
+await unitOfWork.SaveChangesAsync();
