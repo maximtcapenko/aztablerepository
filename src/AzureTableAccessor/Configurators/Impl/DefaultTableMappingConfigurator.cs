@@ -18,6 +18,7 @@
         private readonly List<bool> _keys = new List<bool>();
         private bool? _configurationIsValid;
         private readonly DefaultTableNameProvider<TEntity> _tableNameProvider = new DefaultTableNameProvider<TEntity>();
+        private IAutoKeyGenerator _autoKeyGenerator;
 
         public IMappingConfigurator<TEntity> Content<TProperty>(Expression<Func<TEntity, TProperty>> property) where TProperty : class
         {
@@ -32,10 +33,19 @@
             return this;
         }
 
-        public IMappingConfigurator<TEntity> PartitionKey<TProperty>(Expression<Func<TEntity, TProperty>> property)
+        public IMappingConfigurator<TEntity> PartitionKey(Expression<Func<TEntity, string>> property)
         {
             property.CheckPropertyType();
-            ValidateAndAddVisitor(property, () => new PartitionKeyPropertyMapper<TEntity, TProperty>(property));
+            ValidateAndAddVisitor(property, () => new PartitionKeyPropertyMapper<TEntity, string>(property));
+
+            return this;
+        }
+
+        public IMappingConfigurator<TEntity> PartitionKey(Expression<Func<TEntity, string>> property, IAutoKeyGenerator generator)
+        {
+            property.CheckPropertyType();
+            _autoKeyGenerator = generator;
+            ValidateAndAddVisitor(property, () => new PartitionKeyPropertyMapper<TEntity, string>(property));
 
             return this;
         }
@@ -56,10 +66,10 @@
             return this;
         }
 
-        public IMappingConfigurator<TEntity> RowKey<TProperty>(Expression<Func<TEntity, TProperty>> property)
+        public IMappingConfigurator<TEntity> RowKey(Expression<Func<TEntity, string>> property)
         {
             property.CheckPropertyType();
-            ValidateAndAddVisitor(property, () => new RowKeyPropertyMapper<TEntity, TProperty>(property));
+            ValidateAndAddVisitor(property, () => new RowKeyPropertyMapper<TEntity, string>(property));
             _keys.Add(true);
 
             return this;
@@ -78,7 +88,8 @@
 
             return new RuntimeMappingConfiguration<TEntity>(type,
                 _builderVisitors.Values.OfType<IPropertyRuntimeMapper<TEntity>>(),
-                 _tableNameProvider);
+                 _tableNameProvider,
+                 _autoKeyGenerator);
         }
 
         private void ValidateAndAddVisitor<TProperty>(Expression<Func<TEntity, TProperty>> property,

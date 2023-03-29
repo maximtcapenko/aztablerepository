@@ -25,8 +25,8 @@
             var configuration = runtimeMappingConfigurationProvider.GetConfiguration();
             var tablieClient = tableServiceClient.GetTableClient(configuration.TableNameProvider.GetTableName());
 
-            return new TableClientRuntimeProxyRepository<TEntity>(tablieClient, configuration.RuntimeType,
-                 configuration.Mappers, new InMemoryEntityCache());
+            return new TableClientRuntimeProxyRepository<TEntity>(tablieClient, configuration,
+                 new InMemoryEntityCache());
         }
 
         public IRepository<TEntity, TProjection> CreateRepository<TEntity, TProjection>()

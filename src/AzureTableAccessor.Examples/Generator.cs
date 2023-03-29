@@ -9,9 +9,7 @@ namespace AzureTableAccessor.Examples
             var range = Enumerable.Range(0, 10);
 
             var number = "+({0}){1}{2}{3}-{4}{5}{6}{7}-{8}{9}";
-            if(string.IsNullOrEmpty(partitionKey))
-                partitionKey = Guid.NewGuid().ToString();
-
+            
             return new Message
             {
                 ClientBillingId = Guid.NewGuid().ToString(),

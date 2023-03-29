@@ -8,6 +8,7 @@ namespace AzureTableAccessor.Data.Impl.Repositories
     using System.Threading;
     using System.Threading.Tasks;
     using Azure.Data.Tables;
+    using Infrastructure;
     using Infrastructure.Internal;
     using ILocalQueryProvider = AzureTableAccessor.Data.IQueryProvider;
 
@@ -23,7 +24,6 @@ namespace AzureTableAccessor.Data.Impl.Repositories
         private readonly MethodInfo _queryMethod;
         private readonly MethodInfo _getPageMethod;
         private readonly IEntityCache _entityCache;
-
         private readonly static ConcurrentDictionary<string, Func<object, object[], Task>> _methodsCache
             = new ConcurrentDictionary<string, Func<object, object[], Task>>();
 
@@ -42,7 +42,6 @@ namespace AzureTableAccessor.Data.Impl.Repositories
             _getPageMethod = GetType().FindNonPublicGenericMethod(nameof(GetPageAsync));
         }
 
-
         protected Func<object, object[], Task> CreateMethodCreate() => CreateRuntimeMethod(_createMethod);
         protected Func<object, object[], Task> CreateMethodUpdate() => CreateRuntimeMethod(_updateMethod);
         protected Func<object, object[], Task> CreateMethodDelete() => CreateRuntimeMethod(_deleteMethod);
@@ -52,7 +51,6 @@ namespace AzureTableAccessor.Data.Impl.Repositories
         protected Func<object, object[], Task> CreateMethodGetPage() => CreateRuntimeMethod(_getPageMethod);
         protected Func<object, object[], Task> CreateMethodGetSingle() => CreateRuntimeMethod(_querySingleMethod);
 
-
         protected Func<object, object[], Task> CreateRuntimeMethod(MethodInfo methodInfo)
         => _methodsCache.GetOrAdd($"{methodInfo.Name}-{(_runtimeType.Name)}-{methodInfo.GetParameters().Count()}",
         key =>
@@ -61,10 +59,13 @@ namespace AzureTableAccessor.Data.Impl.Repositories
             return MethodFactory.CreateGenericMethod<Task>(genericMethod);
         });
 
-        private async Task CreateAsync<T>(ITransactionBuilder transactionBuilder, IMapper mapper, T entity, TableClient client,
-                     CancellationToken cancellationToken) where T : class, ITableEntity, new()
+        private async Task CreateAsync<T>(IAutoKeyGenerator autoKeyGenerator,
+            ITransactionBuilder transactionBuilder, 
+            IMapper inMapper, 
+            IMapper outMapper, T entity, TableClient client,
+            CancellationToken cancellationToken) where T : class, ITableEntity, new()
         {
-            mapper.Map(entity);
+            inMapper.Map(entity);
 
             if (transactionBuilder != null)
             {
@@ -75,10 +76,16 @@ namespace AzureTableAccessor.Data.Impl.Repositories
 
                     entity.Timestamp = response.Headers.Date;
 
+                    outMapper.Map(entity);
                     _entityCache.Add(entity);
                 });
 
                 return;
+            }
+            
+            if(autoKeyGenerator != null)
+            {
+                entity.PartitionKey = autoKeyGenerator.Generate();
             }
 
             await client.CreateIfNotExistsAsync(cancellationToken)
@@ -91,7 +98,8 @@ namespace AzureTableAccessor.Data.Impl.Repositories
                 entity.ETag = result.Headers.ETag.Value;
 
             entity.Timestamp = result.Headers.Date;
-
+            
+            outMapper.Map(entity);
             _entityCache.Add(entity);
         }
 

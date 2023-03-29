@@ -28,11 +28,11 @@ namespace AzureTableAccessor.Data.Impl
             var configuration = runtimeMappingConfigurationProvider.GetConfiguration();
             var tableClient = _tableServiceClient.GetTableClient(configuration.TableNameProvider.GetTableName());
 
-            var transactionBuilder = new DefaultTransactionBuilder(tableClient);
+            var transactionBuilder = new DefaultTransactionBuilder(tableClient, configuration.AutoKeyGenerator);
             _transactionBuilders.Add(transactionBuilder);
 
-            return new TableClientRuntimeProxyRepository<TEntity>(tableClient, configuration.RuntimeType,
-               configuration.Mappers, transactionBuilder, new InMemoryEntityCache());
+            return new TableClientRuntimeProxyRepository<TEntity>(tableClient, configuration, 
+                         transactionBuilder, new InMemoryEntityCache());
         }
 
         public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
