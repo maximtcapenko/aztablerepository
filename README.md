@@ -20,7 +20,7 @@ class YourEntityTableMappingConfiguration : IMappingConfiguration<YourEntity>
     }
 }
 ```
-   - Use methods `PartitionKey` and `RowKey` to configure the mapping of the entity's required keys. In Azure Table storage system entities must have partition and row keys to be properly indexed and queried. These methods allow you to define how these keys should be mapped from the entity's properties
+   - Use methods `PartitionKey` and `RowKey` to configure the mapping of the entity's required keys. In Azure Table storage system entities must have partition and row keys to be properly indexed and queried. These methods allow you to define how these keys should be mapped from the entity's properties. `PartitionKey` supports custom auto value generator. Default auto generator is `AutoKeyGenerator.Guid`
    - Use method  `Property` to configure mapping of searchable properties. It supports mapping nested properties and custom naming, which can be helpful for organizing and querying large datasets.
    - Use method  `Content` to configure mapping of non searchable property
    - Use method  `ToTable` to configure a custom table name for the entity. By default, the name of the entity is used as the table name, but you can use this method to provide a more meaningful or descriptive name
@@ -65,13 +65,14 @@ var searchResults = await _repository.GetCollectionAsync(e => e.SomeProperty == 
 IRepository<YourEntity, Projection> _readOnlyRepository;
 IEnumerable<Projection> results = await _readOnlyRepository.GetCollectionAsync(); //fetch all
 ```
-6. Use transactions
+6. Use transactions (batch operations)
 ```c#
 IUnitOfWork _unitOfWork;
 
 var repository = unitOfWork.CreateRepository<YourEntity>();
 
 await repository.CreateAsync(entity);
-await _repository.UpdateAsync(entity);
+await repository.CreateAsync(entity1);
+await repository.UpdateAsync(entity3);
 
 await unitOfWork.SaveChangesAsync();
