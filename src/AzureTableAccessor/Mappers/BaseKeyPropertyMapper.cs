@@ -37,7 +37,7 @@
             _configType = configType;
         }
 
-        public void Visit(AnonymousTypeBuilder builder)
+        public void Visit(IRuntimeTypeBuilder builder)
         {
             var propertyInfo = _memberExpression.Member as PropertyInfo;
             builder.DefineProperty(GetKeyPropertyName(), propertyInfo.PropertyType);

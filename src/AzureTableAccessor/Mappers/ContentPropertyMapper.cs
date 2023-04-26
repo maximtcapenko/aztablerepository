@@ -41,7 +41,7 @@
             _contentPaths = paths;
         }
 
-        public void Visit(AnonymousTypeBuilder builder)
+        public void Visit(IRuntimeTypeBuilder builder)
         {
             builder.DefineProperty(_fieldName, typeof(string));
         }

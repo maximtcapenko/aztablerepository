@@ -2,7 +2,7 @@ namespace AzureTableAccessor.Mappers
 {
     using System;
     
-    internal interface IPropertyConfiguration<TEntity>
+    public interface IPropertyConfiguration<TEntity>
     {
         PropertyConfigType PropertyConfigType { get; }
         /// <summary>
@@ -15,7 +15,7 @@ namespace AzureTableAccessor.Mappers
         bool IsConfigured(string propertyName);
     }
 
-    internal interface IPropertyConfiguration<TEntity, TProjection>
+    public interface IPropertyConfiguration<TEntity, TProjection>
     {
         string EntityPropertyBindingName { get; }
         string PropertyName { get; }

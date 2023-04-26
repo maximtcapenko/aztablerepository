@@ -7,7 +7,7 @@ namespace AzureTableAccessor.Infrastructure.Internal
     using System.Reflection;
     using System.Text;
 
-    internal static class Extensions
+    public static class Extensions
     {
         public static string Hash(this string str)
         {
