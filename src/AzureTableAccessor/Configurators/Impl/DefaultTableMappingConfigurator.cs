@@ -61,7 +61,6 @@
         public IMappingConfigurator<TEntity> Property<TProperty>(ICustomPropertyMapper<TEntity, TProperty> customPropertyMapper)
         {
             var property = customPropertyMapper.GetProperty();
-            property.CheckPropertyType();
             ValidateAndAddVisitor(property, () => customPropertyMapper);
 
             return this;
