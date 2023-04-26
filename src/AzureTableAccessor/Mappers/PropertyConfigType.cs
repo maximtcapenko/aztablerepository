@@ -1,6 +1,6 @@
 ﻿namespace AzureTableAccessor.Mappers
 {
-    internal enum PropertyConfigType
+    public enum PropertyConfigType
     {
         PartitionKey,
         RowKey,

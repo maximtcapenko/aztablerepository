@@ -8,9 +8,9 @@ namespace AzureTableAccessor.Configurators.Extensions
     using Builders;
     using Exceptions;
 
-    internal static class ValidationExtensions
+    public static class ValidationExtensions
     {
-        internal static void ValidateKeys(this IEnumerable<IBuilderVisitor> keys, string keyType)
+        public static void ValidateKeys(this IEnumerable<IBuilderVisitor> keys, string keyType)
         {
             if (keys.Count() == 0)
                 throw new PropertyConfigurationException($"{keyType} is not configured");
@@ -19,7 +19,7 @@ namespace AzureTableAccessor.Configurators.Extensions
                 throw new PropertyConfigurationException($"{keyType} configured more then once");
         }
 
-        internal static void CheckPropertyType<TEntity, TProperty>(this Expression<Func<TEntity, TProperty>> property)
+        public static void CheckPropertyType<TEntity, TProperty>(this Expression<Func<TEntity, TProperty>> property)
         {
             var type = typeof(TProperty);
 
@@ -27,7 +27,7 @@ namespace AzureTableAccessor.Configurators.Extensions
                 throw new PropertyConfigurationException($"Property [{property.GetMemberPath()}] must be a string or primitive type");
         }
 
-        internal static void CheckPropertyExpression<TEntity, TProperty>(this Expression<Func<TEntity, TProperty>> property)
+        public static void CheckPropertyExpression<TEntity, TProperty>(this Expression<Func<TEntity, TProperty>> property)
         {
             if (!(property.Body is MemberExpression))
                 throw new PropertyConfigurationException($"Expression [{property}] must be a member access");

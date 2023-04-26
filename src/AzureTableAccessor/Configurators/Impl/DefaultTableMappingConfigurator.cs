@@ -58,6 +58,14 @@
             return this;
         }
 
+        public IMappingConfigurator<TEntity> Property<TProperty>(ICustomPropertyMapper<TEntity, TProperty> customPropertyMapper)
+        {
+            var property = customPropertyMapper.GetProperty();
+            ValidateAndAddVisitor(property, () => customPropertyMapper);
+
+            return this;
+        }
+
         public IMappingConfigurator<TEntity> Property<TProperty>(Expression<Func<TEntity, TProperty>> property, string propertyName)
         {
             property.CheckPropertyType();

@@ -8,7 +8,7 @@ namespace AzureTableAccessor.Builders
     using System;
     using Infrastructure.Internal;
 
-    internal class AnonymousTypeBuilder
+    internal class AnonymousTypeBuilder : IRuntimeTypeBuilder
     {
         private static AssemblyName _assemblyName = new AssemblyName() { Name = "AnonymousTypes" };
         private static string DefaultTypeNamePrefix = "Dynamic";

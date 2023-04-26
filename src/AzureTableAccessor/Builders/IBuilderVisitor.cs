@@ -1,7 +1,7 @@
 namespace AzureTableAccessor.Builders
 {
-    internal interface IBuilderVisitor
+    public interface IBuilderVisitor
     {
-        void Visit(AnonymousTypeBuilder builder);
+        void Visit(IRuntimeTypeBuilder builder);
     }
 }
